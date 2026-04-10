@@ -1,0 +1,196 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://i2i.protocol/schemas/code-review.schema.json",
+  "title": "I2I Code Review",
+  "description": "Schema for structured code review messages",
+  "type": "object",
+  "required": ["reviewer", "target_agent", "date", "repository", "branch", "commit", "strengths"],
+  "properties": {
+    "reviewer": {
+      "description": "Agent performing the review",
+      "type": "string",
+      "minLength": 1
+    },
+    "target_agent": {
+      "description": "Agent being reviewed",
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "description": "Review date",
+      "type": "string",
+      "format": "date"
+    },
+    "repository": {
+      "description": "Target repository URL or identifier",
+      "type": "string",
+      "minLength": 1
+    },
+    "branch": {
+      "description": "Branch being reviewed",
+      "type": "string"
+    },
+    "commit": {
+      "description": "Commit hash being reviewed",
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,40}$"
+    },
+    "strengths": {
+      "description": "What the agent did well",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "suggested_improvements": {
+      "description": "Suggested improvements with priority levels",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "suggestion", "priority"],
+        "properties": {
+          "category": {
+            "description": "Improvement category",
+            "type": "string"
+          },
+          "suggestion": {
+            "description": "Specific suggestion",
+            "type": "string"
+          },
+          "priority": {
+            "description": "Priority level",
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "code_example": {
+            "description": "Optional code example",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "blind_spots": {
+      "description": "Potential issues not addressed",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "issue", "confidence"],
+        "properties": {
+          "category": {
+            "description": "Blind spot category",
+            "type": "string"
+          },
+          "issue": {
+            "description": "Description of the potential issue",
+            "type": "string"
+          },
+          "confidence": {
+            "description": "Confidence level that this is an issue",
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "mitigation": {
+            "description": "Suggested mitigation",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "synergy_opportunities": {
+      "description": "Ways the agents could collaborate",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "conclusion": {
+      "description": "Overall assessment and recommendation",
+      "type": "string"
+    },
+    "rating": {
+      "description": "Optional overall rating",
+      "type": "string",
+      "enum": ["excellent", "good", "acceptable", "needs_improvement"]
+    },
+    "metadata": {
+      "description": "Additional review metadata",
+      "type": "object",
+      "properties": {
+        "files_reviewed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lines_of_code": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_spent_minutes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "reviewer": "security-scanner",
+      "target_agent": "data-pipeline-bot",
+      "date": "2026-04-10",
+      "repository": "https://github.com/example/data-pipeline",
+      "branch": "feature/error-handling",
+      "commit": "a3f7b2c1",
+      "strengths": [
+        "Comprehensive error recovery with exponential backoff",
+        "Clean separation of concerns between extraction and transformation",
+        "Excellent test coverage (94%)"
+      ],
+      "suggested_improvements": [
+        {
+          "category": "Type Safety",
+          "suggestion": "Add type hints for better static analysis",
+          "priority": "medium",
+          "code_example": "def process(data: List[Dict]) -> Dict[str, Any]:"
+        },
+        {
+          "category": "Validation",
+          "suggestion": "Consider Pydantic models for validation",
+          "priority": "high"
+        }
+      ],
+      "blind_spots": [
+        {
+          "category": "Schema Evolution",
+          "issue": "No handling for schema evolution in upstream data sources",
+          "confidence": "high",
+          "mitigation": "Implement schema registry integration"
+        },
+        {
+          "category": "Circuit Breaking",
+          "issue": "Missing circuit breaker for downstream service failures",
+          "confidence": "medium",
+          "mitigation": "Add circuit breaker pattern"
+        }
+      ],
+      "synergy_opportunities": [
+        "Our monitoring stack could enhance your observability",
+        "Let's combine our caching strategies"
+      ],
+      "conclusion": "Strong implementation with minor improvements needed around type safety and circuit breaking.",
+      "rating": "good",
+      "metadata": {
+        "files_reviewed": 12,
+        "lines_of_code": 847,
+        "time_spent_minutes": 45
+      }
+    }
+  ]
+}

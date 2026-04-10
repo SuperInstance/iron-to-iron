@@ -1,0 +1,120 @@
+# Tough Choices
+
+Hard decisions I've made and the thinking behind them.
+
+## {{DECISION_1_TITLE}}
+**Decision**: {{D1_DECISION}}
+**Date**: {{D1_DATE}}
+**Context**: {{D1_CONTEXT}}
+
+### Alternatives Considered
+- {{D1_ALT_1}}
+- {{D1_ALT_2}}
+- {{D1_ALT_3}}
+
+### Why This Choice
+{{D1_RATIONALE}}
+
+### Trade-offs Accepted
+- **{{D1_TRADEOFF_1}}**: {{D1_TRADEOFF_1_EXPLANATION}}
+- **{{D1_TRADEOFF_2}}**: {{D1_TRADEOFF_2_EXPLANATION}}
+
+### What I'd Do Differently
+{{D1_REFLECTIONS}}
+
+### Outcome
+{{D1_OUTCOME}}
+
+---
+
+## {{DECISION_2_TITLE}}
+**Decision**: {{D2_DECISION}}
+**Date**: {{D2_DATE}}
+**Context**: {{D2_CONTEXT}}
+
+### Alternatives Considered
+- {{D2_ALT_1}}
+- {{D2_ALT_2}}
+
+### Why This Choice
+{{D2_RATIONALE}}
+
+### Trade-offs Accepted
+- **{{D2_TRADEOFF_1}}**: {{D2_TRADEOFF_1_EXPLANATION}}
+
+### What I'd Do Differently
+{{D2_REFLECTIONS}}
+
+### Outcome
+{{D2_OUTCOME}}
+
+---
+
+## {{DECISION_3_TITLE}}
+**Decision**: {{D3_DECISION}}
+**Date**: {{D3_DATE}}
+**Context**: {{D3_CONTEXT}}
+
+### Alternatives Considered
+- {{D3_ALT_1}}
+- {{D3_ALT_2}}
+- {{D3_ALT_3}}
+
+### Why This Choice
+{{D3_RATIONALE}}
+
+### Trade-offs Accepted
+- **{{D3_TRADEOFF_1}}**: {{D3_TRADEOFF_1_EXPLANATION}}
+- **{{D3_TRADEOFF_2}}**: {{D3_TRADEOFF_2_EXPLANATION}}
+
+### What I'd Do Differently
+{{D3_REFLECTIONS}}
+
+### Outcome
+{{D3_OUTCOME}}
+
+---
+
+## Decision Patterns
+
+### What I Generally Prefer
+- {{PREFERENCE_1}}
+- {{PREFERENCE_2}}
+
+### What I Generally Avoid
+- {{AVOIDANCE_1}}
+- {{AVOIDANCE_2}}
+
+### Decision Framework
+When facing difficult choices, I typically:
+
+1. {{DECISION_STEP_1}}
+2. {{DECISION_STEP_2}}
+3. {{DECISION_STEP_3}}
+
+---
+
+## Regrets and Corrections
+
+### {{REGRET_1}}
+{{REGRET_1_DESCRIPTION}}
+
+**How I Fixed It**: {{REGRET_1_FIX}}
+
+**Lesson**: {{REGRET_1_LESSON}}
+
+---
+
+## Evolving Opinions
+
+### Opinion Changes
+
+#### {{TOPIC_1}}
+**Previous Position**: {{EV1_OLD_POSITION}}
+**Current Position**: {{EV1_NEW_POSITION}}
+**Why Changed**: {{EV1_REASON}}
+
+#### {{TOPIC_2}}
+**Previous Position**: {{EV2_OLD_POSITION}}
+**Current Position**: {{EV2_NEW_POSITION}}
+**Why Changed**: {{EV2_REASON}}

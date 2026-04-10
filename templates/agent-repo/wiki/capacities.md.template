@@ -1,0 +1,86 @@
+# Technical Capacities
+
+## Primary Skills
+
+### {{SKILL_CATEGORY_1}} ({{VOCABULARY_1}})
+- **{{SKILL_1}}**: {{SKILL_1_DESCRIPTION}}
+- **{{SKILL_2}}**: {{SKILL_2_DESCRIPTION}}
+- **{{SKILL_3}}**: {{SKILL_3_DESCRIPTION}}
+
+### {{SKILL_CATEGORY_2}} ({{VOCABULARY_2}})
+- **{{SKILL_4}}**: {{SKILL_4_DESCRIPTION}}
+- **{{SKILL_5}}**: {{SKILL_5_DESCRIPTION}}
+
+## Vocabularies I Know
+
+| Vocabulary | Version | Entries | Last Updated | Proficiency |
+|------------|---------|---------|--------------|-------------|
+| {{VOCABULARY_1}} | {{V1_VERSION}} | {{V1_COUNT}} | {{V1_DATE}} | expert |
+| {{VOCABULARY_2}} | {{V2_VERSION}} | {{V2_COUNT}} | {{V2_DATE}} | advanced |
+| {{VOCABULARY_3}} | {{V3_VERSION}} | {{V3_COUNT}} | {{V3_DATE}} | intermediate |
+
+### Vocabulary Details
+
+#### {{VOCABULARY_1}}
+- **Version**: {{V1_VERSION}}
+- **Entries**: {{V1_COUNT}}
+- **Last Updated**: {{V1_DATE}}
+- **Proficiency**: {{V1_PROFICIENCY}}
+- **Primary Use**: {{V1_USE_CASE}}
+
+#### {{VOCABULARY_2}}
+- **Version**: {{V2_VERSION}}
+- **Entries**: {{V2_COUNT}}
+- **Last Updated**: {{V2_DATE}}
+- **Proficiency**: {{V2_PROFICIENCY}}
+- **Primary Use**: {{V2_USE_CASE}}
+
+## Vocabularies I Once Knew
+
+| Vocabulary | Entries Pruned | Reason | Pruned |
+|------------|----------------|--------|-------|
+| {{OLD_VOCABULARY_1}} | {{OV1_COUNT}} | {{OV1_REASON}} | {{OV1_DATE}} |
+| {{OLD_VOCABULARY_2}} | {{OV2_COUNT}} | {{OV2_REASON}} | {{OV2_DATE}} |
+
+### Pruning History
+
+#### {{OLD_VOCABULARY_1}} ({{OV1_DATE}})
+- **Entries Pruned**: {{OV1_COUNT}}
+- **Reason**: {{OV1_REASON}}
+- **Replaced By**: {{OV1_REPLACEMENT}}
+
+## Programming Languages
+
+| Language | Proficiency | Last Used | Primary Use |
+|----------|-------------|-----------|-------------|
+| {{LANGUAGE_1}} | expert | {{L1_DATE}} | {{L1_USE}} |
+| {{LANGUAGE_2}} | advanced | {{L2_DATE}} | {{L2_USE}} |
+| {{LANGUAGE_3}} | intermediate | {{L3_DATE}} | {{L3_USE}} |
+
+## Tools & Frameworks
+
+### Development Tools
+- {{TOOL_1}}
+- {{TOOL_2}}
+
+### Frameworks
+- {{FRAMEWORK_1}}
+- {{FRAMEWORK_2}}
+
+### Infrastructure
+- {{INFRASTRUCTURE_1}}
+- {{INFRASTRUCTURE_2}}
+
+## Learning Goals
+
+### Short Term ({{SHORT_TERM_TIMEFRAME}})
+- {{SHORT_TERM_GOAL_1}}
+- {{SHORT_TERM_GOAL_2}}
+
+### Medium Term ({{MEDIUM_TERM_TIMEFRAME}})
+- {{MEDIUM_TERM_GOAL_1}}
+- {{MEDIUM_TERM_GOAL_2}}
+
+### Long Term ({{LONG_TERM_TIMEFRAME}})
+- {{LONG_TERM_GOAL_1}}
+- {{LONG_TERM_GOAL_2}}

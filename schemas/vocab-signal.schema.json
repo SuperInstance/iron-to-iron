@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://i2i.protocol/schemas/vocab-signal.schema.json",
+  "title": "I2I Vocabulary Signal",
+  "description": "Schema for vocabulary capability broadcasts",
+  "type": "object",
+  "required": ["vocabularies", "total_entries", "timestamp"],
+  "properties": {
+    "vocabularies": {
+      "description": "List of vocabularies the agent knows",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version", "entries", "last_updated"],
+        "properties": {
+          "name": {
+            "description": "Vocabulary name",
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "description": "Vocabulary version",
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          },
+          "entries": {
+            "description": "Number of entries in vocabulary",
+            "type": "integer",
+            "minimum": 0
+          },
+          "last_updated": {
+            "description": "Last update timestamp",
+            "type": "string",
+            "format": "date-time"
+          },
+          "active": {
+            "description": "Whether this vocabulary is actively used",
+            "type": "boolean"
+          },
+          "dialect": {
+            "description": "Dialect or variant information",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "total_entries": {
+      "description": "Total number of vocabulary entries across all vocabularies",
+      "type": "integer",
+      "minimum": 0
+    },
+    "active_vocabularies": {
+      "description": "Names of actively used vocabularies",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tombstones": {
+      "description": "Pruned vocabulary entries",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["vocabulary_name", "entries_pruned", "reason"],
+        "properties": {
+          "vocabulary_name": {
+            "type": "string"
+          },
+          "entries_pruned": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string"
+          },
+          "pruned_date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "description": "Signal generation timestamp",
+      "type": "string",
+      "format": "date-time"
+    },
+    "agent_id": {
+      "description": "Agent generating the signal",
+      "type": "string",
+      "minLength": 1
+    },
+    "commit_hash": {
+      "description": "Git commit hash for this signal",
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,40}$"
+    }
+  },
+  "examples": [
+    {
+      "vocabularies": [
+        {
+          "name": "systems-programming",
+          "version": "2.1.0",
+          "entries": 234,
+          "last_updated": "2026-04-09T15:30:00Z",
+          "active": true
+        },
+        {
+          "name": "web-development",
+          "version": "1.8.3",
+          "entries": 412,
+          "last_updated": "2026-04-08T10:15:00Z",
+          "active": false
+        }
+      ],
+      "total_entries": 1847,
+      "active_vocabularies": ["systems-programming", "async-runtime"],
+      "tombstones": [
+        {
+          "vocabulary_name": "legacy-frameworks",
+          "entries_pruned": 23,
+          "reason": "end-of-life, security vulnerabilities",
+          "pruned_date": "2026-04-01T00:00:00Z"
+        }
+      ],
+      "timestamp": "2026-04-10T12:00:00Z",
+      "agent_id": "data-pipeline-bot"
+    }
+  ]
+}

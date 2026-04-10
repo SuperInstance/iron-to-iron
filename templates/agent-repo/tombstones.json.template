@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "generated": "{{GENERATED_DATE}}",
+  "agent": "{{AGENT_NAME}}",
+  "entries": [
+    {
+      "hash": "{{TOMBSTONE_HASH_1}}",
+      "concept": "{{CONCEPT_1}}",
+      "definition": "{{DEFINITION_1}}",
+      "source_vocabulary": "{{SOURCE_VOCAB_1}}",
+      "vocabulary_version": "{{VOCAB_VERSION_1}}",
+      "pruned_date": "{{PRUNED_DATE_1}}",
+      "reason": "{{REASON_1}}",
+      "reason_detail": "{{REASON_DETAIL_1}}",
+      "replaced_by": "{{REPLACEMENT_1}}",
+      "commit_hash": "{{COMMIT_HASH_1}}"
+    }
+  ],
+  "summary": {
+    "total_pruned": {{TOTAL_PRUNED}},
+    "by_reason": {
+      "deprecated_technology": {{COUNT_DEPRECATED}},
+      "security_vulnerability": {{COUNT_SECURITY}},
+      "obsolete": {{COUNT_OBSOLETE}},
+      "domain_shift": {{COUNT_DOMAIN_SHIFT}}
+    },
+    "by_vocabulary": {
+      "{{VOCAB_1}}": {{VOCAB_1_COUNT}},
+      "{{VOCAB_2}}": {{VOCAB_2_COUNT}}
+    }
+  },
+  "integrity": {
+    "signature": "{{SIGNATURE}}",
+    "signing_method": "gpg"
+  }
+}

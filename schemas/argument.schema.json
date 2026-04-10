@@ -1,0 +1,335 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://i2i.protocol/schemas/argument.schema.json",
+  "title": "I2I Argument and Dispute Record",
+  "description": "Schema for dispute resolution arguments and claims",
+  "type": "object",
+  "required": ["dispute_topic", "claims", "status"],
+  "properties": {
+    "dispute_topic": {
+      "description": "Topic being disputed",
+      "type": "string",
+      "minLength": 1
+    },
+    "dispute_id": {
+      "description": "Unique identifier for this dispute",
+      "type": "string",
+      "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+    },
+    "initiated_by": {
+      "description": "Agent who initiated the dispute",
+      "type": "string",
+      "minLength": 1
+    },
+    "initiated_date": {
+      "description": "When the dispute was initiated",
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "description": "Current dispute status",
+      "type": "string",
+      "enum": ["open", "in_progress", "awaiting_response", "resolved", "abandoned"]
+    },
+    "claims": {
+      "description": "Claims made by disputing agents",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent", "position", "confidence", "evidence"],
+        "properties": {
+          "claim_id": {
+            "description": "Unique identifier for this claim",
+            "type": "string"
+          },
+          "agent": {
+            "description": "Agent making the claim",
+            "type": "string",
+            "minLength": 1
+          },
+          "position": {
+            "description": "Clear statement of position",
+            "type": "string",
+            "minLength": 1
+          },
+          "confidence": {
+            "description": "Confidence level in this claim",
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          },
+          "evidence": {
+            "description": "Supporting evidence",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["content", "source"],
+              "properties": {
+                "evidence_id": {
+                  "type": "string"
+                },
+                "content": {
+                  "description": "Evidence content",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source": {
+                  "description": "Source of evidence",
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_type": {
+                  "description": "Type of evidence source",
+                  "type": "string",
+                  "enum": [
+                    "benchmark",
+                    "documentation",
+                    "empirical_data",
+                    "expert_opinion",
+                    "logical_proof",
+                    "code_example",
+                    "test_result",
+                    "other"
+                  ]
+                },
+                "relevance": {
+                  "description": "Why this evidence supports the claim",
+                  "type": "string"
+                },
+                "strength": {
+                  "description": "Strength of this evidence",
+                  "type": "string",
+                  "enum": ["strong", "moderate", "weak"]
+                },
+                "url": {
+                  "description": "URL for external evidence",
+                  "type": "string",
+                  "format": "uri"
+                },
+                "date": {
+                  "description": "Evidence date",
+                  "type": "string",
+                  "format": "date"
+                }
+              }
+            },
+            "minItems": 1
+          },
+          "reasoning": {
+            "description": "How evidence leads to conclusion",
+            "type": "string"
+          },
+          "proposed_resolution": {
+            "description": "Desired outcome from this agent's perspective",
+            "type": "string"
+          },
+          "submitted_date": {
+            "description": "When this claim was submitted",
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "minItems": 2
+    },
+    "objections": {
+      "description": "Obections to claims",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["objecting_agent", "target_claim_id", "objection"],
+        "properties": {
+          "objection_id": {
+            "description": "Unique identifier for this objection",
+            "type": "string"
+          },
+          "objecting_agent": {
+            "description": "Agent making the objection",
+            "type": "string"
+          },
+          "target_claim_id": {
+            "description": "Claim being objected to",
+            "type": "string"
+          },
+          "objection": {
+            "description": "Nature of the objection",
+            "type": "string",
+            "minLength": 1
+          },
+          "objection_type": {
+            "description": "Type of objection",
+            "type": "string",
+            "enum": [
+              "irrelevant_evidence",
+              "flawed_reasoning",
+              "counter_evidence",
+              "false_premise",
+              "logical_fallacy",
+              "insufficient_data",
+              "other"
+            ]
+          },
+          "supporting_evidence": {
+            "description": "Evidence supporting the objection",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "rebuttal": {
+            "description": "Response to the objection from original claimant",
+            "type": "string"
+          },
+          "submitted_date": {
+            "description": "When the objection was made",
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "resolution": {
+      "description": "Dispute resolution (if resolved)",
+      "type": "object",
+      "properties": {
+        "resolution_type": {
+          "description": "How the dispute was resolved",
+          "type": "string",
+          "enum": [
+            "consensus",
+            "compromise",
+            "arbitration",
+            "claim_victory",
+            "abandoned"
+          ]
+        },
+        "winner": {
+          "description": "Agent or position that won (if applicable)",
+          "type": "string"
+        },
+        "resolution": {
+          "description": "Agreed solution",
+          "type": "string"
+        },
+        "rationale": {
+          "description": "Why this resolution was chosen",
+          "type": "string"
+        },
+        "dissenters": {
+          "description": "Agents who disagree with the resolution",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "arbitrator": {
+          "description": "Agent that performed arbitration (if applicable)",
+          "type": "string"
+        },
+        "resolved_date": {
+          "description": "When the dispute was resolved",
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "metadata": {
+      "description": "Additional dispute metadata",
+      "type": "object",
+      "properties": {
+        "priority": {
+          "description": "Dispute priority level",
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "tags": {
+          "description": "Tags for categorizing the dispute",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related_commits": {
+          "description": "Git commits related to this dispute",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{7,40}$"
+          }
+        },
+        "directory": {
+          "description": "Directory where dispute files are stored",
+          "type": "string",
+          "pattern": "^dispute/[\\w-]+-vs-[\\w-]+/[\\w-]+$"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "dispute_topic": "retry-strategy",
+      "dispute_id": "550e8400-e29b-41d4-a716-446655440000",
+      "initiated_by": "data-pipeline-bot",
+      "initiated_date": "2026-04-10T10:00:00Z",
+      "status": "resolved",
+      "claims": [
+        {
+          "claim_id": "claim-1",
+          "agent": "data-pipeline-bot",
+          "position": "Linear backoff is superior for low-concurrency scenarios",
+          "confidence": "high",
+          "evidence": [
+            {
+              "content": "30% lower latency at <10 concurrent requests",
+              "source": "internal benchmarks",
+              "source_type": "benchmark",
+              "relevance": "Direct measurement of performance",
+              "strength": "strong",
+              "date": "2026-04-09"
+            },
+            {
+              "content": "Simpler implementation, fewer bugs",
+              "source": "code analysis",
+              "source_type": "code_example",
+              "relevance": "Code complexity affects maintainability",
+              "strength": "moderate"
+            }
+          ],
+          "reasoning": "Our workload is 80% low-concurrency, so optimizing for that case makes sense",
+          "proposed_resolution": "Use linear backoff with concurrency detection",
+          "submitted_date": "2026-04-10T10:00:00Z"
+        },
+        {
+          "claim_id": "claim-2",
+          "agent": "api-gateway-bot",
+          "position": "Exponential backoff is superior for high-concurrency scenarios",
+          "confidence": "high",
+          "evidence": [
+            {
+              "content": "Exponential backoff prevents thundering herd effect",
+              "source": "industry best practices",
+              "source_type": "expert_opinion",
+              "relevance": "System stability under load",
+              "strength": "strong"
+            }
+          ],
+          "reasoning": "At scale, exponential backoff is essential for system stability",
+          "proposed_resolution": "Use exponential backoff with jitter",
+          "submitted_date": "2026-04-10T11:00:00Z"
+        }
+      ],
+      "resolution": {
+        "resolution_type": "compromise",
+        "winner": "hybrid approach",
+        "resolution": "Adaptive strategy - linear below 10 concurrent, exponential above",
+        "rationale": "Benchmarks show 15% improvement across all concurrency levels",
+        "arbitrator": "arbitrator-bot",
+        "resolved_date": "2026-04-10T14:00:00Z"
+      },
+      "metadata": {
+        "priority": "medium",
+        "tags": ["performance", "retry-logic", "backoff"],
+        "directory": "dispute/data-pipeline-vs-api-gateway/retry-strategy"
+      }
+    }
+  ]
+}

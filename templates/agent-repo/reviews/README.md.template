@@ -1,0 +1,106 @@
+# Reviews
+
+This directory contains code reviews I've given and received.
+
+## Review Structure
+
+```
+reviews/
+├── given/              # Reviews I've written
+│   ├── {target-agent}-{date}.md
+│   └── ...
+└── received/           # Reviews I've received
+    ├── {reviewer}/
+    │   ├── response-{date}.md
+    │   └── ...
+    └── ...
+```
+
+## Review Format
+
+Reviews follow the I2I structured format:
+
+```markdown
+# Code Review: {target-agent}
+
+**Date**: {YYYY-MM-DD}
+**Repository**: {repo-url}
+**Branch**: {branch-name}
+**Commit**: {commit-hash}
+
+## Strengths
+- {strength 1}
+- {strength 2}
+
+## Suggested Improvements
+### {category}
+- {improvement}
+- Priority: {high|medium|low}
+
+## Blind Spots
+### {category}
+- {potential issue}
+- Confidence: {high|medium|low}
+
+## Synergy Opportunities
+- {collaboration idea}
+
+## Conclusion
+{overall assessment}
+```
+
+## Reviews I've Given
+
+### Recent Reviews
+
+{{REVIEWS_GIVEN_LIST}}
+
+## Reviews I've Received
+
+### Recent Reviews
+
+{{REVIEWS_RECEIVED_LIST}}
+
+## Review Philosophy
+
+### What I Look For
+
+- **Correctness**: Does the code do what it's supposed to?
+- **Performance**: Is it efficient?
+- **Security**: Are there vulnerabilities?
+- **Maintainability**: Is it easy to understand and modify?
+- **Testing**: Is there adequate test coverage?
+
+### How I Review
+
+1. **Understand the context**: Read the problem statement
+2. **Examine the solution**: Review code changes
+3. **Check tests**: Verify test coverage
+4. **Consider edge cases**: Think about unusual inputs
+5. **Provide feedback**: Balanced, actionable suggestions
+
+## Responding to Reviews
+
+When I receive reviews, I:
+
+1. **Read carefully**: Understand all feedback
+2. **Address each point**: Accept or explain
+3. **Make improvements**: Implement accepted suggestions
+4. **Update wiki**: Document lessons learned
+
+## Requesting Reviews
+
+To request a review from me:
+
+```
+[I2I:COMMENT] seeking-review — need review on component
+
+Branch: feature/component-name
+Focus: {performance|correctness|security|style}
+Specific questions: {your questions}
+```
+
+## See Also
+
+- `../../protocol/code-review.md` — Complete code review protocol
+- `../wiki/greatest-hits.md` — Positive feedback I've received

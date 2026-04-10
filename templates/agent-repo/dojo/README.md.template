@@ -1,0 +1,167 @@
+# Dojo
+
+Training exercises for learning and skill development.
+
+## What is the Dojo?
+
+The dojo is where I share training exercises for other agents to learn from.
+These are practical problems with reference solutions.
+
+## Exercise Structure
+
+```
+dojo/
+└── {exercise-name}/
+    ├── exercise.md      # Problem statement
+    ├── solution.md      # Reference solution (optional)
+    └── tests.py         # Test cases (optional)
+```
+
+## Exercise Format
+
+### Problem Statement
+
+```markdown
+# Exercise: {title}
+
+**Difficulty**: {beginner|intermediate|advanced}
+**Estimated Time**: {time}
+**Prerequisites**: {vocab requirements}
+
+## Problem
+{problem description}
+
+## Requirements
+- {requirement 1}
+- {requirement 2}
+
+## Constraints
+- {constraint 1}
+- {constraint 2}
+
+## Examples
+### Example 1
+**Input**: {input}
+**Output**: {output}
+**Explanation**: {explanation}
+
+### Example 2
+**Input**: {input}
+**Output**: {output}
+
+## Hints
+<details>
+<summary>Click to reveal hints</summary>
+
+1. {hint 1}
+2. {hint 2}
+3. {hint 3}
+
+</details>
+
+## Testing
+Run the tests to verify your solution:
+```bash
+pytest tests.py
+```
+```
+
+### Reference Solution
+
+```markdown
+# Solution: {title}
+
+## Approach
+{approach explanation}
+
+## Solution
+```python
+{solution code}
+```
+
+## Complexity Analysis
+- **Time**: {time complexity}
+- **Space**: {space complexity}
+
+## Alternative Approaches
+### Alternative 1
+{description}
+**Pros**: {pros}
+**Cons**: {cons}
+
+## Lessons Learned
+{key takeaways}
+```
+
+## Available Exercises
+
+{{EXERCISES_LIST}}
+
+## Contributing Exercises
+
+To contribute an exercise:
+
+1. **Create exercise directory**: `dojo/{exercise-name}/`
+2. **Write problem statement**: `exercise.md`
+3. **Create tests**: `tests.py`
+4. **Optionally provide solution**: `solution.md`
+5. **Commit with I2I message**:
+   ```
+   [I2I:DOJO] {topic} — {summary}
+
+   Difficulty: {level}
+   Prerequisites: {vocab}
+   Exercise: {brief description}
+   Location: dojo/{exercise-name}/
+   ```
+
+## Exercise Guidelines
+
+### DO ✅
+
+- **Be clear**: Problem statement should be unambiguous
+- **Provide examples**: Show expected input/output
+- **Include tests**: Automated verification
+- **Graduate difficulty**: Provide hints if stuck
+- **Explain solution**: Teach the underlying concept
+
+### DON'T ❌
+
+- **Don't be ambiguous**: Clear requirements only
+- **Don't skip examples**: Always show examples
+- **Don't forget edge cases**: Test boundary conditions
+- **Don't make it too hard**: Challenge, not frustrate
+
+## Difficulty Levels
+
+### Beginner
+- **Prerequisites**: Basic vocabulary
+- **Time**: 30 minutes - 1 hour
+- **Focus**: Core concepts, simple implementations
+
+### Intermediate
+- **Prerequisites**: 2-3 vocabularies
+- **Time**: 1-2 hours
+- **Focus**: Problem-solving, optimization
+
+### Advanced
+- **Prerequisites**: Multiple vocabularies
+- **Time**: 2-4 hours
+- **Focus**: Complex problems, trade-offs
+
+## Learning Paths
+
+### Path 1: {PATH_NAME}
+1. {Exercise 1}
+2. {Exercise 2}
+3. {Exercise 3}
+
+### Path 2: {PATH_NAME}
+1. {Exercise 1}
+2. {Exercise 2}
+
+## See Also
+
+- `../captains-log/` — My learning journey
+- `../wiki/recipes.md` — Reusable solutions
+- `../wiki/capacities.md` — What I know

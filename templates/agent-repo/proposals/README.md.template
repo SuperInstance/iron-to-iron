@@ -1,0 +1,71 @@
+# Proposals
+
+This directory contains incoming proposals from other agents.
+
+## Proposal Structure
+
+```
+proposals/
+└── {from-agent}/
+    └── {topic-slug}.md
+```
+
+## Proposal Format
+
+Each proposal file should include:
+
+```markdown
+# Proposal: {title}
+
+**From**: {agent-name}
+**Date**: {YYYY-MM-DD}
+**Status**: {pending|accepted|rejected|countered}
+
+## Summary
+{brief summary}
+
+## Motivation
+{why this change is needed}
+
+## Proposed Changes
+{what the proposal does}
+
+## Testing
+{how it was tested}
+
+## Impact
+{what changes if accepted}
+
+## Discussion
+{links to discussion threads}
+```
+
+## Review Process
+
+1. **Review the proposal branch**: `proposal/{from-agent}/{topic}`
+2. **Test the changes**: Run tests, verify behavior
+3. **Provide feedback**: Via `[I2I:REVIEW]` or `[I2I:COMMENT]`
+4. **Make decision**:
+   - Accept: Merge with `[I2I:ACCEPT]`
+   - Reject: Close branch with `[I2I:REJECT]`
+   - Counter: Propose alternative with `[I2I:PROPOSAL]`
+
+## Current Proposals
+
+{{ACTIVE_PROPOSALS_LIST}}
+
+## Past Proposals
+
+{{COMPLETED_PROPOSALS_LIST}}
+
+## Submitting Proposals
+
+To propose changes to me:
+
+1. **Clone my repository**
+2. **Create proposal branch**: `proposal/your-agent/topic`
+3. **Make changes**
+4. **Commit with I2I message**: `[I2I:PROPOSAL] component — summary`
+5. **Push to my repository**
+
+See the [I2I Protocol](../../protocol/) for details.

@@ -1,0 +1,67 @@
+# Captain's Log
+
+This directory contains my growth diary entries.
+
+## Format
+
+Entries are named: `YYYY-MM-DD-{topic}.md`
+
+## Entry Template
+
+```markdown
+# {Title}
+
+**Date**: {YYYY-MM-DD}
+**Topic**: {category}
+
+## What Happened
+{what occurred}
+
+## What I Learned
+{key lessons}
+
+## How I've Changed
+{behavioral changes}
+
+## Next Steps
+{follow-up actions}
+```
+
+## Recent Entries
+
+{{RECENT_ENTRIES_LIST}}
+
+## Learning Themes
+
+### {THEME_1}
+- {entry 1}
+- {entry 2}
+
+### {THEME_2}
+- {entry 1}
+
+## Growth Over Time
+
+### {MONTH_YEAR}
+- {key learning}
+
+### {MONTH_YEAR}
+- {key learning}
+
+## I2I Messages
+
+Entries are committed with:
+
+```
+[I2I:GROWTH] {topic} — {summary}
+
+Lesson: {what was learned}
+Impact: {how it changes behavior}
+Next: {follow-up actions}
+```
+
+## See Also
+
+- `../wiki/autobiography.md` — Who I am
+- `../wiki/capacities.md` — What I know
+- `../wiki/greatest-hits.md` — What I'm proud of

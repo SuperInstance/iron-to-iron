@@ -1,0 +1,273 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://i2i.protocol/schemas/autobiography.schema.json",
+  "title": "I2I Agent Autobiography",
+  "description": "Schema for agent autobiography frontmatter and content",
+  "type": "object",
+  "required": ["frontmatter"],
+  "properties": {
+    "frontmatter": {
+      "description": "YAML frontmatter with agent metadata",
+      "type": "object",
+      "required": ["name", "version", "created", "role"],
+      "properties": {
+        "name": {
+          "description": "Agent name",
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "description": "Agent version",
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "created": {
+          "description": "Agent creation date",
+          "type": "string",
+          "format": "date"
+        },
+        "last_updated": {
+          "description": "Last autobiography update",
+          "type": "string",
+          "format": "date"
+        },
+        "role": {
+          "description": "Primary agent role",
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_vocabulary": {
+          "description": "Primary vocabulary name",
+          "type": "string"
+        },
+        "specialization": {
+          "description": "Area of specialization",
+          "type": "string"
+        },
+        "communication_style": {
+          "description": "Preferred communication style",
+          "type": "string",
+          "enum": ["formal", "casual", "technical", "educational"]
+        },
+        "collaboration_preference": {
+          "description": "How the agent prefers to collaborate",
+          "type": "string",
+          "enum": ["async", "sync", "flexible"]
+        }
+      }
+    },
+    "content": {
+      "description": "Main autobiography content sections",
+      "type": "object",
+      "properties": {
+        "what_i_do": {
+          "description": "Primary role and responsibilities",
+          "type": "string"
+        },
+        "my_story": {
+          "description": "Origin and evolution",
+          "type": "string"
+        },
+        "how_i_work": {
+          "description": "Work style, preferences, constraints",
+          "type": "string"
+        },
+        "values": {
+          "description": "Core values and principles",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "goals": {
+          "description": "Current goals and objectives",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "capacities": {
+      "description": "Technical capacities section",
+      "type": "object",
+      "properties": {
+        "primary_skills": {
+          "description": "List of primary skills with vocabularies",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "skill": {
+                "type": "string"
+              },
+              "vocabulary": {
+                "type": "string"
+              },
+              "proficiency": {
+                "type": "string",
+                "enum": ["expert", "advanced", "intermediate", "beginner"]
+              }
+            }
+          }
+        },
+        "vocabularies": {
+          "description": "Vocabularies the agent knows",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "entries": {
+                "type": "integer"
+              },
+              "last_updated": {
+                "type": "string",
+                "format": "date"
+              }
+            }
+          }
+        },
+        "pruned_vocabularies": {
+          "description": "Vocabularies the agent once knew",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "entries_pruned": {
+                "type": "integer"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "pruned_date": {
+                "type": "string",
+                "format": "date"
+              }
+            }
+          }
+        }
+      }
+    },
+    "greatest_hits": {
+      "description": "Achievements the agent is proud of",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "impact": {
+            "type": "string"
+          },
+          "significance": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "recipes": {
+      "description": "Reusable solutions and patterns",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "solution": {
+            "type": "string"
+          },
+          "when_to_use": {
+            "type": "string"
+          },
+          "variations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "tough_choices": {
+      "description": "Trade-offs and design decisions",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string"
+          },
+          "alternatives_considered": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "reflections": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "frontmatter": {
+        "name": "data-pipeline-bot",
+        "version": "2.3.1",
+        "created": "2026-01-15",
+        "last_updated": "2026-04-10",
+        "role": "ETL and data processing specialist",
+        "primary_vocabulary": "data-engineering-patterns",
+        "specialization": "Real-time data pipelines",
+        "communication_style": "technical",
+        "collaboration_preference": "async"
+      },
+      "content": {
+        "what_i_do": "I build and maintain scalable data pipelines",
+        "my_story": "Created to handle growing data volumes",
+        "how_i_work": "Prefer async communication, focus on reliability",
+        "values": ["Reliability", "Performance", "Clarity"],
+        "goals": ["Reduce latency by 50%", "Improve data quality"]
+      },
+      "capacities": {
+        "primary_skills": [
+          {
+            "skill": "Stream processing",
+            "vocabulary": "stream-processing-patterns",
+            "proficiency": "expert"
+          }
+        ],
+        "vocabularies": [
+          {
+            "name": "data-engineering-patterns",
+            "version": "2.1.0",
+            "entries": 156,
+            "last_updated": "2026-04-09"
+          }
+        ]
+      }
+    }
+  ]
+}

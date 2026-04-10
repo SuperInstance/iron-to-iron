@@ -1,0 +1,175 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://i2i.protocol/schemas/tombstone.schema.json",
+  "title": "I2I Tombstone Record",
+  "description": "Schema for pruned vocabulary tombstone records",
+  "type": "object",
+  "required": ["version", "generated", "entries"],
+  "properties": {
+    "version": {
+      "description": "Tombstone format version",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "generated": {
+      "description": "Tombstone file generation timestamp",
+      "type": "string",
+      "format": "date-time"
+    },
+    "agent": {
+      "description": "Agent that generated the tombstones",
+      "type": "string"
+    },
+    "entries": {
+      "description": "Tombstone entries",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["hash", "concept", "source_vocabulary", "pruned_date", "reason"],
+        "properties": {
+          "hash": {
+            "description": "SHA256 hash of the concept:definition",
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "concept": {
+            "description": "Concept name that was pruned",
+            "type": "string",
+            "minLength": 1
+          },
+          "definition": {
+            "description": "Original definition (optional, for verification)",
+            "type": "string"
+          },
+          "source_vocabulary": {
+            "description": "Vocabulary file this came from",
+            "type": "string",
+            "minLength": 1
+          },
+          "vocabulary_version": {
+            "description": "Version of vocabulary when pruned",
+            "type": "string"
+          },
+          "pruned_date": {
+            "description": "When this entry was pruned",
+            "type": "string",
+            "format": "date"
+          },
+          "reason": {
+            "description": "Why this entry was pruned",
+            "type": "string",
+            "enum": [
+              "obsolete",
+              "security_vulnerability",
+              "memory_constraint",
+              "domain_shift",
+              "deprecated_technology",
+              "other"
+            ]
+          },
+          "reason_detail": {
+            "description": "Detailed reason explanation",
+            "type": "string"
+          },
+          "replaced_by": {
+            "description": "What replaced this concept (if anything)",
+            "type": "string"
+          },
+          "commit_hash": {
+            "description": "Git commit hash where pruning occurred",
+            "type": "string",
+            "pattern": "^[a-f0-9]{7,40}$"
+          }
+        }
+      }
+    },
+    "summary": {
+      "description": "Summary statistics",
+      "type": "object",
+      "properties": {
+        "total_pruned": {
+          "description": "Total number of pruned entries",
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_reason": {
+          "description": "Count of prunes by reason",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "by_vocabulary": {
+          "description": "Count of prunes by source vocabulary",
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "integrity": {
+      "description": "Integrity verification information",
+      "type": "object",
+      "properties": {
+        "signature": {
+          "description": "Cryptographic signature of the tombstone file",
+          "type": "string"
+        },
+        "signing_method": {
+          "description": "Method used to sign",
+          "type": "string",
+          "enum": ["gpg", "ssh", "none"]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "version": "1.0",
+      "generated": "2026-04-10T12:00:00Z",
+      "agent": "web-framework-migrator",
+      "entries": [
+        {
+          "hash": "a3f7b2c1d8e4f9a3b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8",
+          "concept": "angularjs-directive",
+          "definition": "A directive in AngularJS 1.x that attaches behavior to DOM elements",
+          "source_vocabulary": "legacy-web-frameworks",
+          "vocabulary_version": "0.9.0",
+          "pruned_date": "2026-04-10",
+          "reason": "deprecated_technology",
+          "reason_detail": "AngularJS 1.x reached end-of-life in 2022",
+          "replaced_by": "angular-component (modern-web-frameworks v2.1.0)",
+          "commit_hash": "d4e5f6a"
+        },
+        {
+          "hash": "b4c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8",
+          "concept": "jquery-callback-promise",
+          "definition": "jQuery's deferred/promise pattern for async operations",
+          "source_vocabulary": "legacy-web-frameworks",
+          "vocabulary_version": "0.9.0",
+          "pruned_date": "2026-04-10",
+          "reason": "obsolete",
+          "reason_detail": "Replaced by native Promise in all browsers",
+          "replaced_by": "javascript-promise (javascript-core v3.0.0)",
+          "commit_hash": "d4e5f6a"
+        }
+      ],
+      "summary": {
+        "total_pruned": 23,
+        "by_reason": {
+          "deprecated_technology": 15,
+          "obsolete": 5,
+          "security_vulnerability": 3
+        },
+        "by_vocabulary": {
+          "legacy-web-frameworks": 23
+        }
+      },
+      "integrity": {
+        "signature": "-----BEGIN PGP SIGNATURE-----\n...",
+        "signing_method": "gpg"
+      }
+    }
+  ]
+}

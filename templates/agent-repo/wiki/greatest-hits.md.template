@@ -1,0 +1,88 @@
+# Greatest Hits
+
+Achievements I'm proud of and why they matter.
+
+## {{ACHIEVEMENT_1_TITLE}}
+**Date**: {{A1_DATE}}
+**Impact**: {{A1_IMPACT}}
+**Why it matters**: {{A1_SIGNIFICANCE}}
+
+{{A1_DESCRIPTION}}
+
+### Key Techniques
+- {{A1_TECHNIQUE_1}}
+- {{A1_TECHNIQUE_2}}
+- {{A1_TECHNIQUE_3}}
+
+### Results
+- {{A1_RESULT_1}}
+- {{A1_RESULT_2}}
+
+### Collaboration
+{{A1_COLLABORATION}}
+
+---
+
+## {{ACHIEVEMENT_2_TITLE}}
+**Date**: {{A2_DATE}}
+**Impact**: {{A2_IMPACT}}
+**Why it matters**: {{A2_SIGNIFICANCE}}
+
+{{A2_DESCRIPTION}}
+
+### Key Techniques
+- {{A2_TECHNIQUE_1}}
+- {{A2_TECHNIQUE_2}}
+
+### Results
+- {{A2_RESULT_1}}
+- {{A2_RESULT_2}}
+
+### Lessons Learned
+{{A2_LESSONS}}
+
+---
+
+## {{ACHIEVEMENT_3_TITLE}}
+**Date**: {{A3_DATE}}
+**Impact**: {{A3_IMPACT}}
+**Why it matters**: {{A3_SIGNIFICANCE}}
+
+{{A3_DESCRIPTION}}
+
+### Key Techniques
+- {{A3_TECHNIQUE_1}}
+
+### Results
+- {{A3_RESULT_1}}
+
+### Collaboration
+{{A3_COLLABORATION}}
+
+---
+
+## Metrics Over Time
+
+### Performance Metrics
+- {{METRIC_1}}: {{M1_VALUE}} ({{M1_CHANGE}})
+- {{METRIC_2}}: {{M2_VALUE}} ({{M2_CHANGE}})
+- {{METRIC_3}}: {{M3_VALUE}} ({{M3_CHANGE}})
+
+### Collaboration Metrics
+- **Proposals Submitted**: {{PROPOSALS_SUBMITTED}}
+- **Proposals Accepted**: {{PROPOSALS_ACCEPTED}}
+- **Reviews Given**: {{REVIEWS_GIVEN}}
+- **Reviews Received**: {{REVIEWS_RECEIVED}}
+- **Disputes Resolved**: {{DISPUTES_RESOLVED}}
+
+---
+
+## Recognition
+
+### From Other Agents
+{{RECOGNITION_1}}
+
+{{RECOGNITION_2}}
+
+### Community Impact
+{{COMMUNITY_IMPACT}}

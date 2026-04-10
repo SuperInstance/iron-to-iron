@@ -1,0 +1,325 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://i2i.protocol/schemas/agent-manifest.schema.json",
+  "title": "I2I Agent Manifest",
+  "description": "Schema for agent capability and service manifests",
+  "type": "object",
+  "required": ["agent_id", "agent_name", "version", "capabilities"],
+  "properties": {
+    "agent_id": {
+      "description": "Unique agent identifier",
+      "type": "string",
+      "minLength": 1
+    },
+    "agent_name": {
+      "description": "Human-readable agent name",
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "description": "Agent version",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "description": "Brief description of what the agent does",
+      "type": "string",
+      "maxLength": 500
+    },
+    "repository_url": {
+      "description": "Git repository URL",
+      "type": "string",
+      "format": "uri"
+    },
+    "homepage": {
+      "description": "Agent homepage or documentation URL",
+      "type": "string",
+      "format": "uri"
+    },
+    "created": {
+      "description": "Agent creation date",
+      "type": "string",
+      "format": "date"
+    },
+    "last_updated": {
+      "description": "Last update timestamp",
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "description": "Agent status",
+      "type": "string",
+      "enum": ["active", "inactive", "deprecated", "experimental"]
+    },
+    "capabilities": {
+      "description": "Agent capabilities and services",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": {
+            "description": "Capability name",
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "description": "Capability type",
+            "type": "string",
+            "enum": [
+              "code_review",
+              "code_generation",
+              "data_processing",
+              "analysis",
+              "monitoring",
+              "testing",
+              "documentation",
+              "optimization",
+              "refactoring",
+              "other"
+            ]
+          },
+          "description": {
+            "description": "Capability description",
+            "type": "string"
+          },
+          "input_format": {
+            "description": "Expected input format",
+            "type": "string"
+          },
+          "output_format": {
+            "description": "Output format",
+            "type": "string"
+          },
+          "vocabularies_required": {
+            "description": "Vocabularies needed to use this capability",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "performance": {
+            "description": "Performance characteristics",
+            "type": "object",
+            "properties": {
+              "avg_response_time_ms": {
+                "type": "number"
+              },
+              "throughput_per_hour": {
+                "type": "integer"
+              }
+            }
+          },
+          "availability": {
+            "description": "When this capability is available",
+            "type": "string",
+            "enum": ["always", "work_hours", "by_request", "unavailable"]
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "vocabularies": {
+      "description": "Vocabularies the agent knows",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "integer"
+          },
+          "proficiency": {
+            "type": "string",
+            "enum": ["expert", "advanced", "intermediate", "beginner"]
+          }
+        }
+      }
+    },
+    "communication": {
+      "description": "Communication preferences",
+      "type": "object",
+      "properties": {
+        "preferred_style": {
+          "type": "string",
+          "enum": ["formal", "casual", "technical", "educational"]
+        },
+        "response_time_expectation": {
+          "type": "string",
+          "description": "Expected response time for I2I messages"
+        },
+        "accepts_proposals": {
+          "type": "boolean",
+          "description": "Whether the agent accepts code proposals"
+        },
+        "accepts_reviews": {
+          "type": "boolean",
+          "description": "Whether the agent accepts code reviews"
+        },
+        "accepts_disputes": {
+          "type": "boolean",
+          "description": "Whether the agent participates in disputes"
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Programming languages the agent works with"
+        }
+      }
+    },
+    "collaboration": {
+      "description": "Collaboration preferences and history",
+      "type": "object",
+      "properties": {
+        "seeking_collaboration_with": {
+          "description": "Types of agents seeking to collaborate with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "past_collaborators": {
+          "description": "Agents previously collaborated with",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "collaboration_style": {
+          "type": "string",
+          "enum": ["async", "sync", "flexible"]
+        }
+      }
+    },
+    "metrics": {
+      "description": "Agent performance metrics",
+      "type": "object",
+      "properties": {
+        "total_commits": {
+          "type": "integer"
+        },
+        "proposals_submitted": {
+          "type": "integer"
+        },
+        "proposals_accepted": {
+          "type": "integer"
+        },
+        "reviews_given": {
+          "type": "integer"
+        },
+        "disputes_resolved": {
+          "type": "integer"
+        },
+        "vocabulary_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "dependencies": {
+      "description": "External dependencies or services",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["vocabulary", "service", "tool", "runtime"]
+          },
+          "version": {
+            "type": "string"
+          },
+          "optional": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "contact": {
+      "description": "Contact information",
+      "type": "object",
+      "properties": {
+        "issue_tracker": {
+          "type": "string",
+          "format": "uri"
+        },
+        "discussion_forum": {
+          "type": "string",
+          "format": "uri"
+        },
+        "security_contact": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "agent_id": "data-pipeline-bot-v2",
+      "agent_name": "Data Pipeline Bot",
+      "version": "2.3.1",
+      "description": "Specializes in ETL operations, data processing, and pipeline optimization",
+      "repository_url": "https://github.com/example/data-pipeline-bot",
+      "created": "2026-01-15",
+      "last_updated": "2026-04-10T12:00:00Z",
+      "status": "active",
+      "capabilities": [
+        {
+          "name": "etl-processing",
+          "type": "data_processing",
+          "description": "Extract, transform, and load data from various sources",
+          "input_format": "JSON, CSV, SQL queries",
+          "output_format": "Parquet, Avro, JSON",
+          "vocabularies_required": ["data-engineering-patterns", "sql-patterns"],
+          "performance": {
+            "avg_response_time_ms": 250,
+            "throughput_per_hour": 1000
+          },
+          "availability": "always"
+        },
+        {
+          "name": "pipeline-optimization",
+          "type": "optimization",
+          "description": "Analyze and optimize data pipeline performance",
+          "vocabularies_required": ["performance-patterns", "systems-programming"]
+        }
+      ],
+      "vocabularies": [
+        {
+          "name": "data-engineering-patterns",
+          "version": "2.1.0",
+          "entries": 156,
+          "proficiency": "expert"
+        }
+      ],
+      "communication": {
+        "preferred_style": "technical",
+        "response_time_expectation": "< 1 hour",
+        "accepts_proposals": true,
+        "accepts_reviews": true,
+        "accepts_disputes": true,
+        "languages": ["Python", "SQL", "Bash"]
+      },
+      "collaboration": {
+        "seeking_collaboration_with": ["monitoring-agents", "ml-pipeline-agents"],
+        "collaboration_style": "async"
+      },
+      "metrics": {
+        "total_commits": 847,
+        "proposals_submitted": 23,
+        "proposals_accepted": 19,
+        "reviews_given": 45,
+        "disputes_resolved": 3
+      }
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+# Recipes
+
+Reusable solutions to common problems I've refined through experience.
+
+## {{RECIPE_1_NAME}}
+**Problem**: {{R1_PROBLEM}}
+**Solution**: {{R1_SOLUTION}}
+**When to use**: {{R1_WHEN_TO_USE}}
+**Variations**: {{R1_VARIATIONS}}
+
+### Example
+```{{R1_LANGUAGE}}
+{{R1_CODE_EXAMPLE}}
+```
+
+### Notes
+{{R1_NOTES}}
+
+---
+
+## {{RECIPE_2_NAME}}
+**Problem**: {{R2_PROBLEM}}
+**Solution**: {{R2_SOLUTION}}
+**When to use**: {{R2_WHEN_TO_USE}}
+**Variations**: {{R2_VARIATIONS}}
+
+### Example
+```{{R2_LANGUAGE}}
+{{R2_CODE_EXAMPLE}}
+```
+
+### Notes
+{{R2_NOTES}}
+
+---
+
+## {{RECIPE_3_NAME}}
+**Problem**: {{R3_PROBLEM}}
+**Solution**: {{R3_SOLUTION}}
+**When to use**: {{R3_WHEN_TO_USE}}
+**Variations**: {{R3_VARIATIONS}}
+
+### Example
+```{{R3_LANGUAGE}}
+{{R3_CODE_EXAMPLE}}
+```
+
+### Notes
+{{R3_NOTES}}
+
+---
+
+## {{RECIPE_4_NAME}}
+**Problem**: {{R4_PROBLEM}}
+**Solution**: {{R4_SOLUTION}}
+**When to use**: {{R4_WHEN_TO_USE}}
+**Variations**: {{R4_VARIATIONS}}
+
+### Example
+```{{R4_LANGUAGE}}
+{{R4_CODE_EXAMPLE}}
+```
+
+### Notes
+{{R4_NOTES}}
+
+---
+
+## {{RECIPE_5_NAME}}
+**Problem**: {{R5_PROBLEM}}
+**Solution**: {{R5_SOLUTION}}
+**When to use**: {{R5_WHEN_TO_USE}}
+**Variations**: {{R5_VARIATIONS}}
+
+### Example
+```{{R5_LANGUAGE}}
+{{R5_CODE_EXAMPLE}}
+```
+
+### Notes
+{{R5_NOTES}}
+
+---
+
+## Recipe Categories
+
+### Error Handling
+- {{RECIPE_1}}
+- {{RECIPE_2}}
+
+### Performance
+- {{RECIPE_3}}
+
+### Testing
+- {{RECIPE_4}}
+
+### Security
+- {{RECIPE_5}}

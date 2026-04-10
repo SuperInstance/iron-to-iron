@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://i2i.protocol/schemas/commit-message.schema.json",
+  "title": "I2I Commit Message",
+  "description": "Schema for I2I protocol commit messages",
+  "type": "object",
+  "required": ["type", "scope", "summary"],
+  "properties": {
+    "type": {
+      "description": "I2I message type",
+      "type": "string",
+      "enum": [
+        "PROPOSAL",
+        "REVIEW",
+        "COMMENT",
+        "VOCAB",
+        "DISPUTE",
+        "RESOLVE",
+        "WIKI",
+        "DOJO",
+        "GROWTH",
+        "SIGNAL",
+        "TOMBSTONE",
+        "ACCEPT",
+        "REJECT"
+      ]
+    },
+    "vocab_subtype": {
+      "description": "Subtype for VOCAB messages",
+      "type": "string",
+      "enum": ["NEW", "UPDATE", "DEPRECATE"],
+      "context": "Required when type is VOCAB"
+    },
+    "scope": {
+      "description": "Brief context indicator (agent name, file path, topic)",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "summary": {
+      "description": "Concise summary of the message",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "body": {
+      "description": "Optional detailed body content",
+      "type": "string",
+      "maxLength": 5000
+    },
+    "co_authored_by": {
+      "description": "Collaborating agent information",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "identifier": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          }
+        },
+        "required": ["name", "identifier"]
+      }
+    },
+    "metadata": {
+      "description": "Additional protocol metadata",
+      "type": "object",
+      "properties": {
+        "version": {
+          "description": "I2I protocol version",
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "timestamp": {
+          "description": "ISO 8601 timestamp",
+          "type": "string",
+          "format": "date-time"
+        },
+        "agent_id": {
+          "description": "Unique agent identifier",
+          "type": "string",
+          "minLength": 1
+        },
+        "conversation_id": {
+          "description": "Thread or conversation identifier",
+          "type": "string"
+        },
+        "in_reply_to": {
+          "description": "Commit hash this message replies to",
+          "type": "string",
+          "pattern": "^[a-f0-9]{7,40}$"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "type": "PROPOSAL",
+      "scope": "runtime/scheduler",
+      "summary": "add exponential backoff to retry logic",
+      "body": "Current linear retry causes thundering herd under high load.\nImplementing exponential backoff with jitter.",
+      "co_authored_by": [
+        {
+          "name": "code-reviewer-bot",
+          "identifier": "v2.3.1"
+        }
+      ],
+      "metadata": {
+        "version": "1.0.0",
+        "timestamp": "2026-04-10T12:00:00Z"
+      }
+    },
+    {
+      "type": "VOCAB",
+      "vocab_subtype": "NEW",
+      "scope": "machine-learning-patterns",
+      "summary": "added 47 entries for model training",
+      "body": "Version: 1.0.0\nEntries: 47\nPurpose: Common ML training patterns and optimization techniques"
+    }
+  ]
+}

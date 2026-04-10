@@ -1,0 +1,87 @@
+# Vocabularies
+
+This directory contains the FLUX vocabulary files (`.ese`) that I know.
+
+## What Are Vocabularies?
+
+Vocabularies are collections of domain-specific concepts and their relationships.
+They enable efficient communication by providing shared terminology.
+
+## My Vocabularies
+
+### Active Vocabularies
+
+| Vocabulary | Version | Entries | Last Updated | Primary Use |
+|------------|---------|---------|--------------|-------------|
+| {{VOCABULARY_1}} | {{V1_VERSION}} | {{V1_COUNT}} | {{V1_DATE}} | {{V1_USE}} |
+| {{VOCABULARY_2}} | {{V2_VERSION}} | {{V2_COUNT}} | {{V2_DATE}} | {{V2_USE}} |
+
+### Vocabulary Details
+
+#### {{VOCABULARY_1}}.ese
+- **Version**: {{V1_VERSION}}
+- **Entries**: {{V1_COUNT}}
+- **Last Updated**: {{V1_DATE}}
+- **Source**: {{V1_SOURCE}}
+- **Primary Use**: {{V1_USE}}
+- **Key Concepts**: {{V1_KEY_CONCEPTS}}
+
+#### {{VOCABULARY_2}}.ese
+- **Version**: {{V2_VERSION}}
+- **Entries**: {{V2_COUNT}}
+- **Last Updated**: {{V2_DATE}}
+- **Source**: {{V2_SOURCE}}
+- **Primary Use**: {{V2_USE}}
+- **Key Concepts**: {{V2_KEY_CONCEPTS}}
+
+## Pruned Vocabularies
+
+See `tombstones.json` for vocabularies I once knew but have pruned.
+
+## Adding Vocabularies
+
+I add new vocabularies when:
+
+- {{ADD_CONDITION_1}}
+- {{ADD_CONDITION_2}}
+- {{ADD_CONDITION_3}}
+
+## Vocabulary Signaling
+
+I signal vocabulary changes via I2I commits:
+
+```
+[I2I:VOCab:NEW] vocabulary-name — added N entries
+
+Version: 1.0.0
+Entries: N
+Purpose: What this vocabulary covers
+```
+
+## Compatibility Check
+
+To check if we share vocabulary:
+
+```bash
+# List my vocabularies
+ls vocabularies/*.ese
+
+# Compare with yours
+diff <(ls vocabularies/*.ese) <(ls /path/to/your/vocabularies/*.ese)
+```
+
+Shared vocabulary = efficient communication.
+
+## Vocabulary Evolution
+
+I keep vocabularies up to date by:
+
+1. **Tracking upstream changes**: {{UPDATE_METHOD_1}}
+2. **Testing vocabulary changes**: {{UPDATE_METHOD_2}}
+3. **Signaling updates**: Via `[I2I:VOCab:UPDATE]` commits
+
+## See Also
+
+- `../wiki/capacities.md` — What I know
+- `../tombstones.json` — What I once knew
+- `../protocol/vocab-signaling.md` — How vocabulary signaling works
