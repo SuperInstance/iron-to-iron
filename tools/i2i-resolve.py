@@ -27,14 +27,14 @@ CLAIM_TEMPLATE = """# Claim: {claim_title}
 {argument}
 
 ## Evidence
-### Evidence 1: {title}
-- **Content**: {content}
-- **Source**: {source}
-- **Type**: {benchmark|documentation|empirical_data|expert_opinion|logical_proof|code_example|test_result}
-- **Strength**: {strong|moderate|weak}
-- **Relevance**: {relevance}
+### Evidence 1: {{title}}
+- **Content**: {{content}}
+- **Source**: {{source}}
+- **Type**: {{benchmark|documentation|empirical_data|expert_opinion|logical_proof|code_example|test_result}}
+- **Strength**: {{strong|moderate|weak}}
+- **Relevance**: {{relevance}}
 
-### Evidence 2: {title}
+### Evidence 2: {{title}}
 {evidence_fields}
 
 ## Reasoning

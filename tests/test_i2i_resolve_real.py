@@ -23,7 +23,7 @@ class TestDisputeLifecycle:
         d = init_dispute(topic="t", claim="c", confidence="high", agent_name="a", repo_path=tmp_path)
         m = json.loads((Path(d) / "metadata.json").read_text())
         assert m["status"] == "open"
-        assert m["claims"][0]["claim"] == "c"
+        assert m["claims"][0]["position"] == "c"
         uuid.UUID(m["dispute_id"])  # should not raise
 
     def test_init_creates_claim_file(self, tmp_path):
