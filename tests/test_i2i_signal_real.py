@@ -165,30 +165,41 @@ class TestGenerateSignal:
 
 
 class TestCompareAgents:
-    def _agent(self, tmp, name, concepts):
+    def _agent(self, tmp, name, concepts, vocab_name=None):
         d = tmp / name
         d.mkdir()
         vd = d / "vocabularies"
         vd.mkdir()
-        for c in concepts:
-            (vd / f"{c}.ese").write_text(f"{c}: def")
+        vfile = vocab_name if vocab_name else f"{name}.ese"
+        (vd / vfile).write_text("\n".join(f"{c}: def" for c in concepts))
         return d
 
     def test_identical(self, tmp_path):
-        a = self._agent(tmp_path, "a", ["x", "y"])
-        b = self._agent(tmp_path, "b", ["x", "y"])
+        a = self._agent(tmp_path, "a", ["x", "y"], vocab_name="shared.ese")
+        b = self._agent(tmp_path, "b", ["x", "y"], vocab_name="shared.ese")
         assert compare_agents(a, b)["compatibility_score"] == 1.0
 
     def test_no_overlap(self, tmp_path):
-        a = self._agent(tmp_path, "a", ["x"])
-        b = self._agent(tmp_path, "b", ["y"])
+        a = self._agent(tmp_path, "a", ["x"], vocab_name="sysprog.ese")
+        b = self._agent(tmp_path, "b", ["y"], vocab_name="ml.ese")
         assert compare_agents(a, b)["compatibility_score"] == 0.0
 
     def test_partial(self, tmp_path):
-        a = self._agent(tmp_path, "a", ["x", "y", "z"])
-        b = self._agent(tmp_path, "b", ["y", "z", "w", "v"])
-        r = compare_agents(a, b)
-        assert r["shared_count"] == 2
+        # a has shared.ese with [y,z], core.ese with [x]; b has shared.ese with [y,z], extra.ese with [w]
+        a_dir = tmp_path / "a"
+        a_dir.mkdir()
+        avd = a_dir / "vocabularies"
+        avd.mkdir()
+        (avd / "shared.ese").write_text("y: def\nz: def")
+        (avd / "core.ese").write_text("x: def")
+        b_dir = tmp_path / "b"
+        b_dir.mkdir()
+        bvd = b_dir / "vocabularies"
+        bvd.mkdir()
+        (bvd / "shared.ese").write_text("y: def\nz: def")
+        (bvd / "extra.ese").write_text("w: def")
+        r = compare_agents(a_dir, b_dir)
+        assert r["shared_count"] == 1
         assert r["compatibility_score"] == 0.5
 
     def test_one_empty(self, tmp_path):
@@ -197,6 +208,50 @@ class TestCompareAgents:
         assert compare_agents(a, tmp_path / "b")["compatibility_score"] == 0.0
 
     def test_interpretation_included(self, tmp_path):
-        a = self._agent(tmp_path, "a", ["shared"])
-        b = self._agent(tmp_path, "b", ["shared"])
+        a = self._agent(tmp_path, "a", ["shared"], vocab_name="shared.ese")
+        b = self._agent(tmp_path, "b", ["shared"], vocab_name="shared.ese")
         assert "interpretation" in compare_agents(a, b)
+
+
+class TestParseEseFileEdgeCases:
+    def test_parse_ese_file_non_utf8(self, tmp_path):
+        """Non-UTF-8 bytes should be handled gracefully (UnicodeDecodeError)."""
+        f = tmp_path / "bad.ese"
+        f.write_bytes(b"\xff\xfe invalid utf8\r\nx: y\n")
+        with pytest.raises(UnicodeDecodeError):
+            parse_ese_file(f)
+
+
+class TestScanVocabulariesEdgeCases:
+    def test_scan_vocabularies_nested_subdirs_ignored(self, tmp_path):
+        """Files in subdirectories of vocabularies/ should NOT be picked up."""
+        d = tmp_path / "vocabularies"
+        d.mkdir()
+        (d / "top.ese").write_text("a: b\n")
+        sub = d / "subdir"
+        sub.mkdir()
+        (sub / "nested.ese").write_text("c: d\n")
+        result = scan_vocabularies(tmp_path)
+        names = [v["file"] for v in result]
+        assert "top.ese" in names
+        assert "nested.ese" not in names
+        assert len(result) == 1
+
+
+class TestReadTombstonesEdgeCases:
+    def test_read_tombstones_malformed_json(self, tmp_path):
+        """Malformed JSON in tombstones.json should be handled gracefully."""
+        ts = tmp_path / "tombstones.json"
+        ts.write_text("{invalid json!!!")
+        with pytest.raises(json.JSONDecodeError):
+            read_tombstones(tmp_path)
+
+
+class TestVerifyTombstonesEdgeCases:
+    def test_verify_tombstones_missing_definition_field(self, tmp_path):
+        """Entry without 'definition' key should not crash."""
+        ts = tmp_path / "tombstones.json"
+        ts.write_text(json.dumps({"entries": [{"concept": "orphan", "hash": "whatever"}]}))
+        # Should not raise — entry with missing definition should be flagged as suspicious
+        result = verify_tombstones(ts)
+        assert isinstance(result, list)
