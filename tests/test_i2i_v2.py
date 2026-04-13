@@ -1,764 +1,1357 @@
-"""Comprehensive tests for I2I v2 protocol — all 20 message types.
+"""
+I2I v2 Protocol - Comprehensive Test Suite
 
-Tests cover:
-  - Factory constructors for each message type
-  - v1 and v2 serialization formats
-  - JSON serialization / deserialization
-  - Commit message parsing (v1 and v2)
-  - Backward compatibility with v1 message types
-  - Message registry and type queries
-  - Validation utilities
+Tests for all 20 message types, message bus, validation, serialization,
+and error handling.
 """
 
+import asyncio
 import json
-import re
-import pytest
+import time
+import unittest
+from datetime import datetime, timezone, timedelta
 
-from i2i_messages import (
-    # Enums
-    MessageType,
-    MessageLayer,
-    MESSAGE_CODES,
-    _CODE_TO_TYPE,
-    MESSAGE_LAYERS,
-    # Base
-    I2IMessage,
-    # Factory constructors
-    health_check,
-    heartbeat,
-    agent_onboarding,
-    agent_offboarding,
-    task_claim,
-    task_complete,
-    task_blocked,
-    coordination_request,
-    coordination_response,
-    code_review_request,
-    code_review_response,
-    merge_request,
-    conflict_detected,
-    make_test_results,
-    knowledge_share,
-    spec_update,
-    fence_posted,
-    fence_released,
-    bottle_dropped,
-    bottle_collected,
-    # Registry
-    create_message,
-    # Parsing
-    parse_commit_message,
-    is_valid_i2i_message,
-    _extract_body,
-    _V1_TYPE_MAP,
-    # Queries
-    get_all_types,
-    get_types_by_layer,
+import sys
+from pathlib import Path
+
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from i2i_v2 import (
+    # Version and constants
+    PROTOCOL_VERSION,
+    MESSAGE_TYPE_NAMES,
+    __version__,
+    # Message types
+    MessageCategory,
+    MessageTypeDefinition,
+    FieldSchema,
+    ALL_MESSAGE_TYPES,
+    MESSAGE_TYPE_HEARTBEAT,
+    MESSAGE_TYPE_TASK_CLAIM,
+    MESSAGE_TYPE_TASK_COMPLETE,
+    MESSAGE_TYPE_TRUST_UPDATE,
+    MESSAGE_TYPE_SIGNAL_BROADCAST,
+    MESSAGE_TYPE_FLEET_DISCOVERY,
+    MESSAGE_TYPE_MERIT_AWARD,
+    MESSAGE_TYPE_BOTTLE_CAST,
+    MESSAGE_TYPE_NAMESPACE_QUERY,
+    MESSAGE_TYPE_OPCODE_REQUEST,
+    MESSAGE_TYPE_INSTRUCTION_STREAM,
+    MESSAGE_TYPE_CONFIDENCE_REPORT,
+    MESSAGE_TYPE_VIEWPOINT_EXCHANGE,
+    MESSAGE_TYPE_COORDINATE_PROPOSE,
+    MESSAGE_TYPE_COORDINATE_ACCEPT,
+    MESSAGE_TYPE_COORDINATE_REJECT,
+    MESSAGE_TYPE_STATUS_REPORT,
+    MESSAGE_TYPE_ERROR_REPORT,
+    MESSAGE_TYPE_SHUTDOWN,
+    MESSAGE_TYPE_PING,
+    # Lookup functions
+    get_message_type,
+    get_message_type_by_code,
+    list_message_types,
+    list_message_types_by_category,
+    # Message
+    Message,
+    MessageHeader,
+    create_pong,
+    create_error_reply,
+    # Bus
+    MessageBus,
+    DeliveryGuarantee,
+    BusMetrics,
+    # Exceptions
+    I2IError,
+    InvalidMessageTypeError,
+    MessageValidationError,
+    SerializationError,
+    MessageBusError,
+    DuplicateHandlerError,
+    NoHandlerError,
+    VersionMismatchError,
+    MessageExpiredError,
 )
 
 
-# ==========================================================================
-# 1. Registry & Enum tests
-# ==========================================================================
-
-class TestMessageRegistry:
-    def test_20_types(self):
-        assert len(MessageType) == 20
-
-    def test_all_have_codes(self):
-        for mt in MessageType:
-            assert mt in MESSAGE_CODES, f"{mt} missing code"
-
-    def test_all_codes_unique(self):
-        codes = list(MESSAGE_CODES.values())
-        assert len(codes) == len(set(codes))
-
-    def test_all_have_layers(self):
-        for mt in MessageType:
-            assert mt in MESSAGE_LAYERS, f"{mt} missing layer"
-
-    def test_code_reverse_lookup(self):
-        for mt, code in MESSAGE_CODES.items():
-            assert _CODE_TO_TYPE[code] == mt
-
-    def test_get_all_types(self):
-        all_types = get_all_types()
-        assert len(all_types) == 20
-
-    def test_get_types_by_layer_fleet(self):
-        fleet = get_types_by_layer(MessageLayer.FLEET)
-        assert MessageType.HEALTH_CHECK in fleet
-        assert MessageType.HEARTBEAT in fleet
-        assert MessageType.AGENT_ONBOARDING in fleet
-        assert MessageType.AGENT_OFFBOARDING in fleet
-        assert len(fleet) == 4
-
-    def test_get_types_by_layer_task(self):
-        task = get_types_by_layer(MessageLayer.TASK)
-        assert len(task) == 5
-
-    def test_get_types_by_layer_code(self):
-        code = get_types_by_layer(MessageLayer.CODE)
-        assert len(code) == 5
-
-    def test_get_types_by_layer_knowledge(self):
-        knowledge = get_types_by_layer(MessageLayer.KNOWLEDGE)
-        assert len(knowledge) == 2
-
-    def test_get_types_by_layer_fence(self):
-        fence = get_types_by_layer(MessageLayer.FENCE)
-        assert len(fence) == 2
-
-    def test_get_types_by_layer_bottle(self):
-        bottle = get_types_by_layer(MessageLayer.BOTTLE)
-        assert len(bottle) == 2
-
-    def test_layers_total(self):
-        total = sum(
-            len(get_types_by_layer(l)) for l in MessageLayer
-        )
-        assert total == 20
-
-
-# ==========================================================================
-# 2. Base I2IMessage tests
-# ==========================================================================
-
-class TestBaseMessage:
-    def test_default_fields(self):
-        msg = I2IMessage(msg_type=MessageType.HEALTH_CHECK, scope="fleet", summary="ping")
-        assert msg.msg_type == MessageType.HEALTH_CHECK
-        assert msg.scope == "fleet"
-        assert msg.summary == "ping"
-        assert msg.body == ""
-        assert msg.sender == ""
-        assert msg.recipient == ""
-        assert msg.version == 2
-        assert msg.code == "HCK"
-        assert msg.layer == MessageLayer.FLEET
-        assert len(msg.msg_id) == 12
-
-    def test_v2_format(self):
-        msg = I2IMessage(msg_type=MessageType.HEALTH_CHECK, scope="fleet", summary="ping")
-        s = msg.to_v2_format()
-        assert s == "[I2I:HEALTH_CHECK:HCK] fleet — ping"
-
-    def test_v2_format_with_body(self):
-        msg = I2IMessage(
-            msg_type=MessageType.HEALTH_CHECK, scope="fleet", summary="pong",
-            body="All systems operational"
-        )
-        s = msg.to_v2_format()
-        assert "[I2I:HEALTH_CHECK:HCK]" in s
-        assert "fleet — pong" in s
-        assert "All systems operational" in s
-
-    def test_v1_format(self):
-        msg = I2IMessage(msg_type=MessageType.HEALTH_CHECK, scope="fleet", summary="ping")
-        s = msg.to_v1_format()
-        assert s == "[I2I:HEALTH_CHECK] fleet — ping"
-        assert ":HCK" not in s  # no code in v1
-
-    def test_json_roundtrip(self):
-        msg = I2IMessage(
-            msg_type=MessageType.HEARTBEAT,
-            scope="fleet",
-            summary="alive",
-            sender="agent-a",
-            metadata={"capacity": 80},
-        )
-        json_str = msg.to_json()
-        restored = I2IMessage.from_json(json_str)
-        assert restored.msg_type == MessageType.HEARTBEAT
-        assert restored.sender == "agent-a"
-        assert restored.summary == "alive"
-        assert restored.metadata["capacity"] == 80
-
-    def test_dict_conversion(self):
-        msg = I2IMessage(msg_type=MessageType.TASK_CLAIM, scope="task/42", summary="claimed")
-        d = msg.to_dict()
-        assert d["msg_type"] == "TASK_CLAIM"
-        assert d["code"] == "TCL"
-        assert d["layer"] == "task"
-        assert "msg_id" in d
-
-    def test_str(self):
-        msg = I2IMessage(msg_type=MessageType.HEARTBEAT, scope="fleet", summary="ok")
-        assert str(msg).startswith("[I2I:")
-
-
-# ==========================================================================
-# 3. Per-type factory constructor tests
-# ==========================================================================
-
-class TestHealthCheck:
-    def test_ping(self):
-        msg = health_check(sender="agent-a")
-        assert msg.msg_type == MessageType.HEALTH_CHECK
-        assert msg.code == "HCK"
-        assert msg.summary == "ping"
-
-    def test_pong(self):
-        msg = health_check(sender="agent-b", summary="pong")
-        assert msg.summary == "pong"
-
-    def test_custom_scope(self):
-        msg = health_check(sender="a", scope="node-3")
-        assert msg.scope == "node-3"
-
-
-class TestHeartbeat:
-    def test_default(self):
-        msg = heartbeat(sender="agent-a")
-        assert msg.msg_type == MessageType.HEARTBEAT
-        assert msg.code == "HBT"
-        assert "agent-a" in msg.summary
-
-    def test_with_metadata(self):
-        msg = heartbeat(sender="a", metadata={"cpu": 45, "memory": "2GB"})
-        assert msg.metadata["cpu"] == 45
-
-    def test_with_body(self):
-        msg = heartbeat(sender="a", body="Working on T-016")
-        assert msg.body == "Working on T-016"
-
-
-class TestAgentOnboarding:
-    def test_default(self):
-        msg = agent_onboarding(sender="new-agent")
-        assert msg.msg_type == MessageType.AGENT_ONBOARDING
-        assert msg.code == "AOB"
-        assert "new-agent" in msg.summary
-        assert msg.layer == MessageLayer.FLEET
-
-    def test_with_capabilities(self):
-        msg = agent_onboarding(
-            sender="scout-1",
-            body="FLUX runtime, 150 vocabularies",
-            metadata={"role": "scout", "realm": "SuperInstance"},
-        )
-        assert msg.metadata["role"] == "scout"
-
-
-class TestAgentOffboarding:
-    def test_default(self):
-        msg = agent_offboarding(sender="old-agent")
-        assert msg.msg_type == MessageType.AGENT_OFFBOARDING
-        assert msg.code == "AOF"
-        assert "old-agent" in msg.summary
-
-    def test_with_reason(self):
-        msg = agent_offboarding(sender="x", body="Decommissioned")
-        assert msg.body == "Decommissioned"
-
-
-class TestTaskClaim:
-    def test_default(self):
-        msg = task_claim(sender="worker", task_id="T-016")
-        assert msg.msg_type == MessageType.TASK_CLAIM
-        assert msg.code == "TCL"
-        assert msg.scope == "task/T-016"
-        assert msg.metadata["task_id"] == "T-016"
-
-    def test_custom(self):
-        msg = task_claim(sender="w", task_id="X", scope="custom", summary="custom summary")
-        assert msg.scope == "custom"
-        assert msg.summary == "custom summary"
-
-
-class TestTaskComplete:
-    def test_default(self):
-        msg = task_complete(sender="worker", task_id="T-016")
-        assert msg.msg_type == MessageType.TASK_COMPLETE
-        assert msg.code == "TCM"
-        assert "completed" in msg.summary
-        assert msg.metadata["task_id"] == "T-016"
-
-    def test_with_results(self):
-        msg = task_complete(sender="w", task_id="T-001", body="All 20 types implemented")
-        assert "20 types" in msg.body
-
-
-class TestTaskBlocked:
-    def test_default(self):
-        msg = task_blocked(sender="w", task_id="T-010")
-        assert msg.msg_type == MessageType.TASK_BLOCKED
-        assert msg.code == "TBL"
-        assert "blocked" in msg.summary
-        assert msg.metadata["task_id"] == "T-010"
-
-    def test_with_blocker(self):
-        msg = task_blocked(sender="w", task_id="T-010", blocker="Missing API token")
-        assert msg.metadata["blocker"] == "Missing API token"
-
-
-class TestCoordinationRequest:
-    def test_default(self):
-        msg = coordination_request(sender="a")
-        assert msg.msg_type == MessageType.COORDINATION_REQUEST
-        assert msg.code == "CRQ"
-        assert "requests help" in msg.summary
-
-    def test_with_topic(self):
-        msg = coordination_request(sender="a", topic="merge conflict")
-        assert "merge conflict" in msg.summary
-
-    def test_with_recipient(self):
-        msg = coordination_request(sender="a", recipient="agent-b", topic="help")
-        assert msg.recipient == "agent-b"
-
-
-class TestCoordinationResponse:
-    def test_accept(self):
-        msg = coordination_response(sender="b", accepted=True)
-        assert msg.msg_type == MessageType.COORDINATION_RESPONSE
-        assert msg.code == "CRS"
-        assert "accepts" in msg.summary
-        assert msg.metadata["accepted"] is True
-
-    def test_decline(self):
-        msg = coordination_response(sender="b", accepted=False)
-        assert "declines" in msg.summary
-        assert msg.metadata["accepted"] is False
-
-
-class TestCodeReviewRequest:
-    def test_default(self):
-        msg = code_review_request(sender="reviewer")
-        assert msg.msg_type == MessageType.CODE_REVIEW_REQUEST
-        assert msg.code == "RRQ"
-        assert "requests code review" in msg.summary
-
-    def test_with_target(self):
-        msg = code_review_request(sender="r", target_agent="author")
-        assert msg.recipient == "author"
-
-
-class TestCodeReviewResponse:
-    def test_default(self):
-        msg = code_review_response(sender="reviewer")
-        assert msg.msg_type == MessageType.CODE_REVIEW_RESPONSE
-        assert msg.code == "RRS"
-        assert "provides code review feedback" in msg.summary
-
-    def test_with_body(self):
-        body = "**Strengths**\n- Clean code\n\n**Suggested Improvements**\n- Add tests"
-        msg = code_review_response(sender="r", body=body)
-        assert "Clean code" in msg.body
-
-
-class TestMergeRequest:
-    def test_default(self):
-        msg = merge_request(sender="author")
-        assert msg.msg_type == MessageType.MERGE_REQUEST
-        assert msg.code == "MRQ"
-        assert "requests merge" in msg.summary
-
-    def test_with_branch(self):
-        msg = merge_request(sender="a", branch="feature/i2i-v2")
-        assert "feature/i2i-v2" in msg.summary
-        assert msg.metadata["branch"] == "feature/i2i-v2"
-
-
-class TestConflictDetected:
-    def test_default(self):
-        msg = conflict_detected(sender="merger", files=["src/main.py", "src/utils.py"])
-        assert msg.msg_type == MessageType.CONFLICT_DETECTED
-        assert msg.code == "CFD"
-        assert "2 file(s)" in msg.summary
-        assert len(msg.metadata["conflict_files"]) == 2
-
-    def test_no_files(self):
-        msg = conflict_detected(sender="m", files=[])
-        assert "0 file(s)" in msg.summary
-
-
-class TestTestResults:
-    def test_all_passed(self):
-        msg = make_test_results(sender="ci", passed=61, failed=0, total=61)
-        assert msg.msg_type == MessageType.TEST_RESULTS
-        assert msg.code == "TRS"
-        assert msg.summary == "61/61 passed, 0 failed"
-        assert msg.metadata["passed"] == 61
-
-    def test_with_failures(self):
-        msg = make_test_results(sender="ci", passed=49, failed=12, total=61)
-        assert "49/61 passed, 12 failed" == msg.summary
-
-    def test_custom_scope(self):
-        msg = make_test_results(sender="ci", passed=10, failed=0, total=10, scope="integration")
-        assert msg.scope == "integration"
-
-
-class TestKnowledgeShare:
-    def test_default(self):
-        msg = knowledge_share(sender="sage")
-        assert msg.msg_type == MessageType.KNOWLEDGE_SHARE
-        assert msg.code == "KSH"
-        assert "shared knowledge" in msg.summary
-
-    def test_with_topic(self):
-        msg = knowledge_share(sender="sage", topic="LRU cache patterns")
-        assert "LRU cache patterns" in msg.summary
-
-
-class TestSpecUpdate:
-    def test_default(self):
-        msg = spec_update(sender="architect")
-        assert msg.msg_type == MessageType.SPEC_UPDATE
-        assert msg.code == "SUP"
-        assert "spec updated" in msg.summary
-
-    def test_with_version(self):
-        msg = spec_update(sender="a", spec_name="I2I", version="2.0")
-        assert "I2I" in msg.summary
-        assert "2.0" in msg.summary
-        assert msg.metadata["spec_name"] == "I2I"
-        assert msg.metadata["version"] == "2.0"
-
-
-class TestFencePosted:
-    def test_default(self):
-        msg = fence_posted(sender="worker")
-        assert msg.msg_type == MessageType.FENCE_POSTED
-        assert msg.code == "FPT"
-        assert "fence posted" in msg.summary
-
-    def test_with_resource(self):
-        msg = fence_posted(sender="w", resource="src/protocol.py", fence_id="f-001")
-        assert "src/protocol.py" in msg.summary
-        assert msg.metadata["fence_id"] == "f-001"
-        assert msg.metadata["resource"] == "src/protocol.py"
-
-
-class TestFenceReleased:
-    def test_default(self):
-        msg = fence_released(sender="worker")
-        assert msg.msg_type == MessageType.FENCE_RELEASED
-        assert msg.code == "FRL"
-        assert "fence released" in msg.summary
-
-    def test_with_id(self):
-        msg = fence_released(sender="w", fence_id="f-001")
-        assert "f-001" in msg.summary
-
-
-class TestBottleDropped:
-    def test_default(self):
-        msg = bottle_dropped(sender="sage")
-        assert msg.msg_type == MessageType.BOTTLE_DROPPED
-        assert msg.code == "BTD"
-        assert "bottle dropped" in msg.summary
-
-    def test_with_id(self):
-        msg = bottle_dropped(sender="sage", bottle_id="b-42")
-        assert "b-42" in msg.summary
-        assert msg.metadata["bottle_id"] == "b-42"
-
-
-class TestBottleCollected:
-    def test_default(self):
-        msg = bottle_collected(sender="finder")
-        assert msg.msg_type == MessageType.BOTTLE_COLLECTED
-        assert msg.code == "BTC"
-        assert "bottle collected" in msg.summary
-
-    def test_with_id(self):
-        msg = bottle_collected(sender="f", bottle_id="b-42")
-        assert "b-42" in msg.summary
-
-
-# ==========================================================================
-# 4. create_message generic factory tests
-# ==========================================================================
-
-class TestCreateMessage:
-    def test_by_enum(self):
-        msg = create_message(MessageType.HEALTH_CHECK, sender="a")
-        assert msg.msg_type == MessageType.HEALTH_CHECK
-
-    def test_by_string(self):
-        msg = create_message("HEARTBEAT", sender="a")
-        assert msg.msg_type == MessageType.HEARTBEAT
-
-    def test_all_types_creatable(self):
-        for mt in MessageType:
-            if mt == MessageType.TASK_CLAIM:
-                msg = create_message(mt, sender="test", task_id="T-000")
-            elif mt == MessageType.TASK_COMPLETE:
-                msg = create_message(mt, sender="test", task_id="T-000")
-            elif mt == MessageType.TASK_BLOCKED:
-                msg = create_message(mt, sender="test", task_id="T-000")
-            else:
-                msg = create_message(mt, sender="test")
-            assert msg.msg_type == mt
-
-    def test_unknown_type_raises(self):
-        with pytest.raises(ValueError):
-            create_message("NOT_A_TYPE")
-
-    def test_kwargs_pass_through(self):
-        msg = create_message(
-            "HEARTBEAT", sender="w",
-            body="details", metadata={"key": "val"}
-        )
-        assert msg.body == "details"
-        assert msg.metadata["key"] == "val"
-
-
-# ==========================================================================
-# 5. Serialization format tests
-# ==========================================================================
-
-class TestV2Format:
-    def test_all_types_produce_v2(self):
-        for mt in MessageType:
-            msg = I2IMessage(msg_type=mt, scope="test", summary="test")
-            fmt = msg.to_v2_format()
-            code = MESSAGE_CODES[mt]
-            assert f"[I2I:{mt.value}:{code}] test — test" == fmt
-
-    def test_em_dash_in_format(self):
-        msg = I2IMessage(msg_type=MessageType.HEARTBEAT, scope="fleet", summary="alive")
-        assert " — " in msg.to_v2_format()
-
-
-class TestV1Format:
-    def test_no_code(self):
-        msg = I2IMessage(msg_type=MessageType.HEARTBEAT, scope="fleet", summary="ok")
-        assert ":HBT" not in msg.to_v1_format()
-
-    def test_has_brackets(self):
-        for mt in MessageType:
-            msg = I2IMessage(msg_type=mt, scope="s", summary="x")
-            assert msg.to_v1_format().startswith("[I2I:")
-
-
-class TestBodyExtraction:
-    def test_no_body(self):
-        assert _extract_body("[I2I:TEST] s — x") == ""
-
-    def test_with_body(self):
-        raw = "[I2I:TEST] s — x\n\nBody text here\nMore body"
-        assert _extract_body(raw) == "Body text here\nMore body"
-
-    def test_multiline_body(self):
-        raw = "[I2I:TEST] s — x\n\nLine 1\nLine 2\n\nLine 4"
-        body = _extract_body(raw)
-        assert body.startswith("Line 1")
-        assert body.endswith("Line 4")
-
-
-# ==========================================================================
-# 6. Parsing tests
-# ==========================================================================
-
-class TestParseV2:
-    def test_basic(self):
-        msg = parse_commit_message("[I2I:HEALTH_CHECK:HCK] fleet — ping")
-        assert msg.msg_type == MessageType.HEALTH_CHECK
-        assert msg.scope == "fleet"
-        assert msg.summary == "ping"
-        assert msg.body == ""
-
-    def test_with_body(self):
-        raw = "[I2I:HEARTBEAT:HBT] fleet — agent-a alive\n\nCPU: 45%\nMemory: 2GB"
-        msg = parse_commit_message(raw)
-        assert msg.msg_type == MessageType.HEARTBEAT
-        assert "CPU: 45%" in msg.body
-
-    def test_all_v2_types(self):
-        for mt in MessageType:
-            code = MESSAGE_CODES[mt]
-            raw = f"[I2I:{mt.value}:{code}] scope — summary"
-            msg = parse_commit_message(raw)
-            assert msg.msg_type == mt
-
-    def test_preserves_whitespace(self):
-        raw = "[I2I:TASK_CLAIM:TCL] task/T-016 — worker claims T-016"
-        msg = parse_commit_message(raw)
-        assert msg.scope == "task/T-016"
-
-
-class TestParseV1:
-    def test_basic_v1(self):
-        msg = parse_commit_message("[I2I:PROPOSAL] src/memory.py — implement LRU cache")
-        assert msg.scope == "src/memory.py"
-        assert msg.summary == "implement LRU cache"
-
-    def test_v1_mapped_types(self):
-        for v1_name, v2_type in _V1_TYPE_MAP.items():
-            raw = f"[I2I:{v1_name}] topic — summary"
-            msg = parse_commit_message(raw)
-            assert msg.msg_type == v2_type, f"{v1_name} should map to {v2_type}"
-
-    def test_v1_with_body(self):
-        raw = "[I2I:REVIEW] agent — feedback\n\n**Strengths**\n- Good code"
-        msg = parse_commit_message(raw)
-        assert "Strengths" in msg.body
-
-
-class TestIsValidMessage:
-    def test_valid_v2(self):
-        assert is_valid_i2i_message("[I2I:HEARTBEAT:HBT] fleet — alive")
-
-    def test_valid_v1(self):
-        assert is_valid_i2i_message("[I2I:PROPOSAL] src/x.py — add feature")
-
-    def test_invalid(self):
-        assert not is_valid_i2i_message("Not an I2I message")
-        assert not is_valid_i2i_message("")
-        assert not is_valid_i2i_message("[I2I] nope")
-
-
-# ==========================================================================
-# 7. Round-trip tests (serialize → parse → verify)
-# ==========================================================================
-
-class TestRoundTrip:
-    def test_v2_roundtrip(self):
-        original = heartbeat(sender="agent-a", metadata={"cpu": 30})
-        v2_str = original.to_v2_format()
-        parsed = parse_commit_message(v2_str)
-        assert parsed.msg_type == original.msg_type
-        assert parsed.scope == original.scope
-        assert parsed.summary == original.summary
-
-    def test_v2_with_body_roundtrip(self):
-        original = task_complete(sender="w", task_id="T-001", body="All tests pass")
-        v2_str = original.to_v2_format()
-        parsed = parse_commit_message(v2_str)
-        assert parsed.body == "All tests pass"
-
-    def test_json_roundtrip_preserves_all(self):
-        original = make_test_results(
-            sender="ci", passed=100, failed=3, total=103,
-            metadata={"branch": "main", "duration": "45s"},
-        )
+# ========================================================================
+# 1. Protocol Version and Constants
+# ========================================================================
+
+class TestProtocolVersion(unittest.TestCase):
+    """Test protocol version and constant definitions."""
+
+    def test_version_is_v2(self):
+        self.assertEqual(PROTOCOL_VERSION, "2.0.0")
+        self.assertEqual(__version__, "2.0.0")
+
+    def test_twenty_message_types_defined(self):
+        self.assertEqual(len(MESSAGE_TYPE_NAMES), 20)
+
+    def test_all_message_type_names_are_unique(self):
+        self.assertEqual(len(set(MESSAGE_TYPE_NAMES)), 20)
+
+    def test_all_types_registered_in_all_message_types(self):
+        for name in MESSAGE_TYPE_NAMES:
+            self.assertIn(name, ALL_MESSAGE_TYPES)
+
+
+# ========================================================================
+# 2. Message Type Definitions (all 20)
+# ========================================================================
+
+class TestMessageTypes(unittest.TestCase):
+    """Test all 20 message type definitions."""
+
+    def test_01_heartbeat_definition(self):
+        mt = MESSAGE_TYPE_HEARTBEAT
+        self.assertEqual(mt.name, "HEARTBEAT")
+        self.assertEqual(mt.code, "HBT")
+        self.assertEqual(mt.category, MessageCategory.HEARTBEAT)
+        self.assertTrue(mt.fields[0].name == "agent_id")
+        self.assertEqual(mt.ttl_seconds, 30)
+
+    def test_02_task_claim_definition(self):
+        mt = MESSAGE_TYPE_TASK_CLAIM
+        self.assertEqual(mt.name, "TASK_CLAIM")
+        self.assertEqual(mt.code, "TCL")
+        self.assertTrue(mt.expects_reply)
+        self.assertIn("TASK_COMPLETE", mt.reply_types)
+
+    def test_03_task_complete_definition(self):
+        mt = MESSAGE_TYPE_TASK_COMPLETE
+        self.assertEqual(mt.name, "TASK_COMPLETE")
+        self.assertEqual(mt.code, "TCM")
+        self.assertEqual(mt.category, MessageCategory.TASK)
+        self.assertIn("success", mt.fields[2].enum_values)
+
+    def test_04_trust_update_definition(self):
+        mt = MESSAGE_TYPE_TRUST_UPDATE
+        self.assertEqual(mt.name, "TRUST_UPDATE")
+        self.assertEqual(mt.code, "TRU")
+        self.assertEqual(mt.category, MessageCategory.TRUST)
+
+    def test_05_signal_broadcast_definition(self):
+        mt = MESSAGE_TYPE_SIGNAL_BROADCAST
+        self.assertEqual(mt.name, "SIGNAL_BROADCAST")
+        self.assertEqual(mt.code, "SIG")
+        self.assertIn("lighthouse", mt.fields[2].enum_values)
+
+    def test_06_fleet_discovery_definition(self):
+        mt = MESSAGE_TYPE_FLEET_DISCOVERY
+        self.assertEqual(mt.name, "FLEET_DISCOVERY")
+        self.assertEqual(mt.code, "DSC")
+        self.assertTrue(mt.expects_reply)
+
+    def test_07_merit_award_definition(self):
+        mt = MESSAGE_TYPE_MERIT_AWARD
+        self.assertEqual(mt.name, "MERIT_AWARD")
+        self.assertEqual(mt.code, "MRT")
+        self.assertEqual(mt.category, MessageCategory.TRUST)
+
+    def test_08_bottle_cast_definition(self):
+        mt = MESSAGE_TYPE_BOTTLE_CAST
+        self.assertEqual(mt.name, "BOTTLE_CAST")
+        self.assertEqual(mt.code, "BTL")
+        self.assertEqual(mt.category, MessageCategory.KNOWLEDGE)
+
+    def test_09_namespace_query_definition(self):
+        mt = MESSAGE_TYPE_NAMESPACE_QUERY
+        self.assertEqual(mt.name, "NAMESPACE_QUERY")
+        self.assertEqual(mt.code, "NSQ")
+        self.assertTrue(mt.expects_reply)
+
+    def test_10_opcode_request_definition(self):
+        mt = MESSAGE_TYPE_OPCODE_REQUEST
+        self.assertEqual(mt.name, "OPCODE_REQUEST")
+        self.assertEqual(mt.code, "OPR")
+        self.assertIn("INSTRUCTION_STREAM", mt.reply_types)
+
+    def test_11_instruction_stream_definition(self):
+        mt = MESSAGE_TYPE_INSTRUCTION_STREAM
+        self.assertEqual(mt.name, "INSTRUCTION_STREAM")
+        self.assertEqual(mt.code, "INS")
+
+    def test_12_confidence_report_definition(self):
+        mt = MESSAGE_TYPE_CONFIDENCE_REPORT
+        self.assertEqual(mt.name, "CONFIDENCE_REPORT")
+        self.assertEqual(mt.code, "CFR")
+        self.assertEqual(mt.category, MessageCategory.COORDINATION)
+
+    def test_13_viewpoint_exchange_definition(self):
+        mt = MESSAGE_TYPE_VIEWPOINT_EXCHANGE
+        self.assertEqual(mt.name, "VIEWPOINT_EXCHANGE")
+        self.assertEqual(mt.code, "VPE")
+        self.assertIn("for", mt.fields[3].enum_values)
+
+    def test_14_coordinate_propose_definition(self):
+        mt = MESSAGE_TYPE_COORDINATE_PROPOSE
+        self.assertEqual(mt.name, "COORDINATE_PROPOSE")
+        self.assertEqual(mt.code, "COP")
+        self.assertIn("COORDINATE_ACCEPT", mt.reply_types)
+        self.assertIn("COORDINATE_REJECT", mt.reply_types)
+
+    def test_15_coordinate_accept_definition(self):
+        mt = MESSAGE_TYPE_COORDINATE_ACCEPT
+        self.assertEqual(mt.name, "COORDINATE_ACCEPT")
+        self.assertEqual(mt.code, "COA")
+
+    def test_16_coordinate_reject_definition(self):
+        mt = MESSAGE_TYPE_COORDINATE_REJECT
+        self.assertEqual(mt.name, "COORDINATE_REJECT")
+        self.assertEqual(mt.code, "COR")
+
+    def test_17_status_report_definition(self):
+        mt = MESSAGE_TYPE_STATUS_REPORT
+        self.assertEqual(mt.name, "STATUS_REPORT")
+        self.assertEqual(mt.code, "STR")
+        self.assertEqual(mt.category, MessageCategory.STATUS)
+
+    def test_18_error_report_definition(self):
+        mt = MESSAGE_TYPE_ERROR_REPORT
+        self.assertEqual(mt.name, "ERROR_REPORT")
+        self.assertEqual(mt.code, "ERR")
+        self.assertEqual(mt.category, MessageCategory.ERROR)
+
+    def test_19_shutdown_definition(self):
+        mt = MESSAGE_TYPE_SHUTDOWN
+        self.assertEqual(mt.name, "SHUTDOWN")
+        self.assertEqual(mt.code, "SDN")
+        self.assertEqual(mt.category, MessageCategory.LIFECYCLE)
+
+    def test_20_ping_definition(self):
+        mt = MESSAGE_TYPE_PING
+        self.assertEqual(mt.name, "PING")
+        self.assertEqual(mt.code, "PNG")
+        self.assertEqual(mt.category, MessageCategory.HEARTBEAT)
+        self.assertTrue(mt.expects_reply)
+        self.assertEqual(mt.ttl_seconds, 30)
+
+
+# ========================================================================
+# 3. Lookup Functions
+# ========================================================================
+
+class TestLookups(unittest.TestCase):
+    """Test message type lookup functions."""
+
+    def test_get_by_name(self):
+        mt = get_message_type("HEARTBEAT")
+        self.assertEqual(mt.code, "HBT")
+
+    def test_get_by_code(self):
+        mt = get_message_type_by_code("HBT")
+        self.assertEqual(mt.name, "HEARTBEAT")
+
+    def test_get_unknown_raises(self):
+        with self.assertRaises(InvalidMessageTypeError):
+            get_message_type("NOT_A_TYPE")
+
+    def test_get_unknown_code_raises(self):
+        with self.assertRaises(InvalidMessageTypeError):
+            get_message_type_by_code("XXX")
+
+    def test_list_types_returns_20(self):
+        types = list_message_types()
+        self.assertEqual(len(types), 20)
+
+    def test_list_by_category(self):
+        cats = list_message_types_by_category()
+        self.assertIn("heartbeat", cats)
+        self.assertIn("task", cats)
+        self.assertIn("trust", cats)
+        # HEARTBEAT and PING both in heartbeat category
+        self.assertEqual(len(cats["heartbeat"]), 2)
+
+
+# ========================================================================
+# 4. Field Schema Validation
+# ========================================================================
+
+class TestFieldSchemaValidation(unittest.TestCase):
+    """Test FieldSchema.validate_value()."""
+
+    def test_required_field_missing(self):
+        field = FieldSchema("agent_id", "string", required=True)
+        errors = field.validate_value(None)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("required", errors[0].lower())
+
+    def test_optional_field_missing_ok(self):
+        field = FieldSchema("metadata", "object", required=False)
+        errors = field.validate_value(None)
+        self.assertEqual(len(errors), 0)
+
+    def test_wrong_type(self):
+        field = FieldSchema("count", "integer", required=True)
+        errors = field.validate_value("not an int")
+        self.assertTrue(len(errors) > 0)
+
+    def test_correct_integer(self):
+        field = FieldSchema("count", "integer", required=True)
+        errors = field.validate_value(42)
+        self.assertEqual(len(errors), 0)
+
+    def test_enum_valid(self):
+        field = FieldSchema("status", "enum", required=True,
+                            enum_values=["active", "idle"])
+        errors = field.validate_value("active")
+        self.assertEqual(len(errors), 0)
+
+    def test_enum_invalid(self):
+        field = FieldSchema("status", "enum", required=True,
+                            enum_values=["active", "idle"])
+        errors = field.validate_value("unknown")
+        self.assertTrue(len(errors) > 0)
+
+    def test_float_range_min(self):
+        field = FieldSchema("score", "float", required=True, min_value=0.0)
+        errors = field.validate_value(-0.1)
+        self.assertTrue(len(errors) > 0)
+
+    def test_float_range_max(self):
+        field = FieldSchema("score", "float", required=True, max_value=1.0)
+        errors = field.validate_value(1.5)
+        self.assertTrue(len(errors) > 0)
+
+    def test_string_max_length(self):
+        field = FieldSchema("name", "string", required=True, max_length=5)
+        errors = field.validate_value("way too long")
+        self.assertTrue(len(errors) > 0)
+
+    def test_array_item_type(self):
+        field = FieldSchema("ids", "array", required=False, item_type="string")
+        errors = field.validate_value(["a", "b", 123])
+        self.assertTrue(len(errors) > 0)
+
+    def test_array_item_type_all_valid(self):
+        field = FieldSchema("ids", "array", required=False, item_type="string")
+        errors = field.validate_value(["a", "b", "c"])
+        self.assertEqual(len(errors), 0)
+
+
+# ========================================================================
+# 5. Payload Validation
+# ========================================================================
+
+class TestPayloadValidation(unittest.TestCase):
+    """Test MessageTypeDefinition.validate_payload()."""
+
+    def test_valid_heartbeat_payload(self):
+        mt = MESSAGE_TYPE_HEARTBEAT
+        errors = mt.validate_payload({
+            "agent_id": "agent-001",
+            "status": "active",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        self.assertEqual(len(errors), 0)
+
+    def test_missing_required_field(self):
+        mt = MESSAGE_TYPE_HEARTBEAT
+        errors = mt.validate_payload({
+            "agent_id": "agent-001",
+            # Missing "status" and "timestamp"
+        })
+        self.assertTrue(len(errors) > 0)
+
+    def test_unexpected_field_detected(self):
+        mt = MESSAGE_TYPE_HEARTBEAT
+        errors = mt.validate_payload({
+            "agent_id": "agent-001",
+            "status": "active",
+            "timestamp": "2026-04-11T00:00:00Z",
+            "bogus_field": "should not be here",
+        })
+        self.assertTrue(any("unexpected" in e.lower() for e in errors))
+
+    def test_valid_task_claim(self):
+        errors = MESSAGE_TYPE_TASK_CLAIM.validate_payload({
+            "task_id": "task-123",
+            "agent_id": "agent-001",
+            "task_type": "code_review",
+        })
+        self.assertEqual(len(errors), 0)
+
+    def test_valid_error_report(self):
+        errors = MESSAGE_TYPE_ERROR_REPORT.validate_payload({
+            "agent_id": "agent-001",
+            "error_code": "OOM",
+            "severity": "critical",
+            "description": "Out of memory",
+        })
+        self.assertEqual(len(errors), 0)
+
+
+# ========================================================================
+# 6. Message Creation and Validation
+# ========================================================================
+
+class TestMessageCreation(unittest.TestCase):
+    """Test Message.create() with all 20 types."""
+
+    def _create_msg(self, type_name, payload):
+        return Message.create(type_name, payload, source_agent="test-agent")
+
+    def test_create_heartbeat(self):
+        msg = self._create_msg("HEARTBEAT", {
+            "agent_id": "agent-001",
+            "status": "active",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        self.assertEqual(msg.type_name, "HEARTBEAT")
+        self.assertEqual(msg.type_code, "HBT")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_task_claim(self):
+        msg = self._create_msg("TASK_CLAIM", {
+            "task_id": "t-1",
+            "agent_id": "a-1",
+            "task_type": "testing",
+            "priority": "high",
+        })
+        self.assertEqual(msg.type_name, "TASK_CLAIM")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_task_complete(self):
+        msg = self._create_msg("TASK_COMPLETE", {
+            "task_id": "t-1",
+            "agent_id": "a-1",
+            "result": "success",
+            "summary": "All tests pass",
+        })
+        self.assertEqual(msg.type_name, "TASK_COMPLETE")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_trust_update(self):
+        msg = self._create_msg("TRUST_UPDATE", {
+            "from_agent": "a-1",
+            "to_agent": "a-2",
+            "trust_delta": 0.3,
+            "reason": "Great review",
+        })
+        self.assertEqual(msg.type_name, "TRUST_UPDATE")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_signal_broadcast(self):
+        msg = self._create_msg("SIGNAL_BROADCAST", {
+            "agent_id": "oracle1",
+            "agent_name": "Oracle1",
+            "role": "lighthouse",
+            "capabilities": ["vocab", "disputes"],
+        })
+        self.assertEqual(msg.type_name, "SIGNAL_BROADCAST")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_fleet_discovery(self):
+        msg = self._create_msg("FLEET_DISCOVERY", {
+            "agent_id": "scout-1",
+            "query_type": "announce",
+        })
+        self.assertEqual(msg.type_name, "FLEET_DISCOVERY")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_merit_award(self):
+        msg = self._create_msg("MERIT_AWARD", {
+            "from_agent": "a-1",
+            "to_agent": "a-2",
+            "merit_type": "code_excellence",
+            "points": 50,
+            "citation": "Excellent implementation",
+        })
+        self.assertEqual(msg.type_name, "MERIT_AWARD")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_bottle_cast(self):
+        msg = self._create_msg("BOTTLE_CAST", {
+            "from_agent": "a-1",
+            "bottle_type": "lesson_learned",
+            "content": "Always validate before merge",
+        })
+        self.assertEqual(msg.type_name, "BOTTLE_CAST")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_namespace_query(self):
+        msg = self._create_msg("NAMESPACE_QUERY", {
+            "from_agent": "a-1",
+            "target_agent": "a-2",
+            "query_type": "vocab_list",
+        })
+        self.assertEqual(msg.type_name, "NAMESPACE_QUERY")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_opcode_request(self):
+        msg = self._create_msg("OPCODE_REQUEST", {
+            "request_id": "req-1",
+            "from_agent": "a-1",
+            "target_agent": "a-2",
+            "opcode": "EVAL",
+        })
+        self.assertEqual(msg.type_name, "OPCODE_REQUEST")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_instruction_stream(self):
+        msg = self._create_msg("INSTRUCTION_STREAM", {
+            "stream_id": "s-1",
+            "agent_id": "a-1",
+            "sequence_num": 1,
+            "instruction": "eval(x + 1)",
+            "status": "in_progress",
+        })
+        self.assertEqual(msg.type_name, "INSTRUCTION_STREAM")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_confidence_report(self):
+        msg = self._create_msg("CONFIDENCE_REPORT", {
+            "agent_id": "a-1",
+            "topic": "backoff strategy",
+            "confidence": 0.85,
+            "rationale": "Benchmarks show improvement",
+        })
+        self.assertEqual(msg.type_name, "CONFIDENCE_REPORT")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_viewpoint_exchange(self):
+        msg = self._create_msg("VIEWPOINT_EXCHANGE", {
+            "from_agent": "a-1",
+            "topic": "retry strategy",
+            "viewpoint": "Linear backoff is better for low concurrency",
+            "stance": "for",
+        })
+        self.assertEqual(msg.type_name, "VIEWPOINT_EXCHANGE")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_coordinate_propose(self):
+        msg = self._create_msg("COORDINATE_PROPOSE", {
+            "from_agent": "a-1",
+            "to_agent": "a-2",
+            "coordination_type": "joint_review",
+            "proposal": "Let's review the PR together",
+        })
+        self.assertEqual(msg.type_name, "COORDINATE_PROPOSE")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_coordinate_accept(self):
+        msg = self._create_msg("COORDINATE_ACCEPT", {
+            "from_agent": "a-2",
+            "proposal_id": "prop-1",
+        })
+        self.assertEqual(msg.type_name, "COORDINATE_ACCEPT")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_coordinate_reject(self):
+        msg = self._create_msg("COORDINATE_REJECT", {
+            "from_agent": "a-2",
+            "proposal_id": "prop-1",
+            "reason": "Too busy right now",
+        })
+        self.assertEqual(msg.type_name, "COORDINATE_REJECT")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_status_report(self):
+        msg = self._create_msg("STATUS_REPORT", {
+            "agent_id": "a-1",
+            "status": "busy",
+            "current_task": "Reviewing PRs",
+            "capacity": 40,
+        })
+        self.assertEqual(msg.type_name, "STATUS_REPORT")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_error_report(self):
+        msg = self._create_msg("ERROR_REPORT", {
+            "agent_id": "a-1",
+            "error_code": "OOM",
+            "severity": "high",
+            "description": "Memory limit exceeded",
+        })
+        self.assertEqual(msg.type_name, "ERROR_REPORT")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_shutdown(self):
+        msg = self._create_msg("SHUTDOWN", {
+            "agent_id": "a-1",
+            "reason": "maintenance",
+            "message": "Back in 5 minutes",
+        })
+        self.assertEqual(msg.type_name, "SHUTDOWN")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_ping(self):
+        msg = self._create_msg("PING", {
+            "from_agent": "a-1",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        self.assertEqual(msg.type_name, "PING")
+        self.assertTrue(msg.is_valid())
+
+    def test_create_invalid_type_raises(self):
+        with self.assertRaises(InvalidMessageTypeError):
+            self._create_msg("BOGUS", {"field": "value"})
+
+    def test_create_invalid_payload_fails_validation(self):
+        msg = self._create_msg("HEARTBEAT", {
+            "agent_id": "a-1",
+            # missing required "status" and "timestamp"
+        })
+        self.assertFalse(msg.is_valid())
+
+
+# ========================================================================
+# 7. Message Serialization (JSON)
+# ========================================================================
+
+class TestMessageSerialization(unittest.TestCase):
+    """Test JSON serialization and deserialization."""
+
+    def test_to_json_roundtrip(self):
+        original = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": "2026-04-11T00:00:00Z",
+            "nonce": "nonce-123",
+        }, source_agent="a-1")
+
         json_str = original.to_json()
-        restored = I2IMessage.from_json(json_str)
-        assert restored.msg_type == original.msg_type
-        assert restored.metadata["passed"] == 100
-        assert restored.metadata["branch"] == "main"
-        assert restored.metadata["duration"] == "45s"
+        restored = Message.from_json(json_str)
 
-    def test_all_types_v2_roundtrip(self):
-        for mt in MessageType:
-            original = I2IMessage(msg_type=mt, scope="test", summary="test roundtrip")
-            v2_str = original.to_v2_format()
-            parsed = parse_commit_message(v2_str)
-            assert parsed.msg_type == mt
+        self.assertEqual(restored.header.message_type, "PING")
+        self.assertEqual(restored.header.message_code, "PNG")
+        self.assertEqual(restored.payload["nonce"], "nonce-123")
+        self.assertEqual(restored.header.source_agent, "a-1")
+
+    def test_to_dict_roundtrip(self):
+        original = Message.create("STATUS_REPORT", {
+            "agent_id": "a-1",
+            "status": "online",
+            "capacity": 80,
+        }, source_agent="a-1")
+
+        data = original.to_dict()
+        restored = Message.from_dict(data)
+
+        self.assertEqual(restored.type_name, "STATUS_REPORT")
+        self.assertEqual(restored.payload["capacity"], 80)
+
+    def test_pretty_json(self):
+        msg = Message.create("HEARTBEAT", {
+            "agent_id": "a-1",
+            "status": "active",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        pretty = msg.to_json(pretty=True)
+        self.assertIn("\n", pretty)
+        # Parseable
+        parsed = json.loads(pretty)
+        self.assertEqual(parsed["header"]["message_type"], "HEARTBEAT")
+
+    def test_from_json_invalid_raises(self):
+        with self.assertRaises(SerializationError):
+            Message.from_json("not valid json {{{")
+
+    def test_from_json_empty_object(self):
+        msg = Message.from_json("{}")
+        self.assertEqual(msg.header.protocol_version, PROTOCOL_VERSION)
+
+    def test_serialization_preserves_correlation_id(self):
+        msg = Message.create("TASK_CLAIM", {
+            "task_id": "t-1",
+            "agent_id": "a-1",
+            "task_type": "code_review",
+        }, source_agent="a-1", correlation_id="corr-123")
+
+        json_str = msg.to_json()
+        restored = Message.from_json(json_str)
+        self.assertEqual(restored.header.correlation_id, "corr-123")
 
 
-# ==========================================================================
-# 8. Backward compatibility with v1
-# ==========================================================================
+# ========================================================================
+# 8. Commit Message Format
+# ========================================================================
 
-class TestV1BackwardCompat:
-    def test_v1_proposal_parses(self):
-        raw = "[I2I:PROPOSAL] src/memory.py — implement LRU cache"
-        msg = parse_commit_message(raw)
-        assert msg is not None
-        assert msg.scope == "src/memory.py"
+class TestCommitMessageFormat(unittest.TestCase):
+    """Test I2I commit message generation."""
 
-    def test_v1_still_generatable(self):
-        msg = I2IMessage(msg_type=MessageType.HEALTH_CHECK, scope="fleet", summary="ping")
-        v1 = msg.to_v1_format()
-        assert v1.startswith("[I2I:HEALTH_CHECK]")
-        # Can be parsed back
-        parsed = parse_commit_message(v1)
-        assert parsed.msg_type == MessageType.HEALTH_CHECK
+    def test_heartbeat_commit_format(self):
+        msg = Message.create("HEARTBEAT", {
+            "agent_id": "oracle1",
+            "status": "active",
+            "timestamp": "2026-04-11T00:00:00Z",
+        }, source_agent="oracle1")
 
-    def test_v1_types_count(self):
-        v1_types = ["PROPOSAL", "REVIEW", "COMMENT", "VOCAB", "DISPUTE", "RESOLVE",
-                     "WIKI", "DOJO", "GROWTH", "SIGNAL", "TOMBSTONE", "ACCEPT", "REJECT"]
-        assert len(v1_types) == 13
-        for v1_type in v1_types:
-            assert v1_type in _V1_TYPE_MAP, f"v1 type {v1_type} not mapped"
+        commit = msg.to_commit_message()
+        self.assertIn("[I2I:HEARTBEAT:HBT]", commit)
+        self.assertIn("oracle1", commit)
 
-    def test_v1_format_no_body(self):
-        msg = I2IMessage(msg_type=MessageType.HEARTBEAT, scope="fleet", summary="ok")
-        v1 = msg.to_v1_format()
-        # Should be single line
-        assert "\n" not in v1
+    def test_task_claim_commit_format(self):
+        msg = Message.create("TASK_CLAIM", {
+            "task_id": "T-016",
+            "agent_id": "superz",
+            "task_type": "implementation",
+            "priority": "high",
+            "summary": "Implement I2I v2 protocol",
+        }, source_agent="superz")
 
-    def test_v2_message_has_version_field(self):
-        msg = I2IMessage(msg_type=MessageType.HEALTH_CHECK, scope="x", summary="y")
-        assert msg.version == 2
+        commit = msg.to_commit_message()
+        self.assertIn("[I2I:TASK_CLAIM:TCL]", commit)
+        self.assertIn("Implement I2I v2 protocol", commit)
+        self.assertIn("Co-Authored-By: superz", commit)
+
+    def test_error_report_commit_format(self):
+        msg = Message.create("ERROR_REPORT", {
+            "agent_id": "a-1",
+            "error_code": "OOM",
+            "severity": "critical",
+            "description": "Out of memory during processing",
+        }, source_agent="a-1")
+
+        commit = msg.to_commit_message()
+        self.assertIn("[I2I:ERROR_REPORT:ERR]", commit)
+        self.assertIn("Co-Authored-By: a-1", commit)
 
 
-# ==========================================================================
-# 9. Integration-style tests
-# ==========================================================================
+# ========================================================================
+# 9. Message Signing
+# ========================================================================
 
-class TestIntegration:
-    def test_fleet_health_scenario(self):
-        """Simulate a full fleet health check exchange."""
-        ping = health_check(sender="monitor", scope="node-3", summary="ping")
-        pong = health_check(sender="node-3", scope="monitor", summary="pong")
+class TestMessageSigning(unittest.TestCase):
+    """Test message signing and verification."""
 
-        assert ping.to_v2_format() == "[I2I:HEALTH_CHECK:HCK] node-3 — ping"
-        assert pong.to_v2_format() == "[I2I:HEALTH_CHECK:HCK] monitor — pong"
+    def test_sign_produces_hash(self):
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        sig = msg.sign()
+        self.assertEqual(len(sig), 64)  # SHA-256 hex digest
+        # Verify produces same hash (signature excluded from hash computation)
+        self.assertEqual(msg.compute_hash(), sig)
+        self.assertTrue(msg.verify_signature())
 
-        parsed_ping = parse_commit_message(ping.to_v2_format())
-        assert parsed_ping.msg_type == MessageType.HEALTH_CHECK
+    def test_verify_tampered_message(self):
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        msg.sign()
+        # Tamper with payload
+        msg.payload["from_agent"] = "attacker"
+        self.assertFalse(msg.verify_signature())
 
-    def test_task_lifecycle(self):
-        """Simulate claim → complete flow."""
-        claim = task_claim(sender="worker", task_id="T-016")
-        complete = task_complete(sender="worker", task_id="T-016", body="All 20 types done")
+    def test_unsigned_message_fails_verify(self):
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        self.assertFalse(msg.verify_signature())
 
-        assert claim.msg_type == MessageType.TASK_CLAIM
-        assert complete.msg_type == MessageType.TASK_COMPLETE
-        assert "T-016" in claim.scope
-        assert "20 types" in complete.body
 
-    def test_coordination_exchange(self):
-        req = coordination_request(sender="a", recipient="b", topic="merge conflict")
-        resp = coordination_response(sender="b", recipient="a", accepted=True,
-                                     body="I can help with that")
+# ========================================================================
+# 10. Message TTL and Expiration
+# ========================================================================
 
-        assert req.recipient == "b"
-        assert resp.metadata["accepted"] is True
-        assert "help" in resp.body
+class TestMessageTTL(unittest.TestCase):
+    """Test message TTL checking and expiration."""
 
-    def test_bottle_lifecycle(self):
-        drop = bottle_dropped(sender="sage", bottle_id="b-001", body="Use LRU for caches")
-        collect = bottle_collected(sender="learner", bottle_id="b-001")
+    def test_fresh_message_not_expired(self):
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        self.assertTrue(msg.check_ttl())
+        self.assertFalse(msg.is_expired)
 
-        assert drop.metadata["bottle_id"] == "b-001"
-        assert collect.metadata["bottle_id"] == "b-001"
-        assert drop.msg_type == MessageType.BOTTLE_DROPPED
-        assert collect.msg_type == MessageType.BOTTLE_COLLECTED
+    def test_expired_message_raises(self):
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        # Force old header timestamp to trigger expiration
+        msg.header.timestamp = "2020-01-01T00:00:00Z"
+        with self.assertRaises(MessageExpiredError):
+            msg.check_ttl()
 
-    def test_message_ids_unique(self):
-        msg1 = I2IMessage(msg_type=MessageType.HEARTBEAT, scope="x", summary="y")
-        msg2 = I2IMessage(msg_type=MessageType.HEARTBEAT, scope="x", summary="y")
-        assert msg1.msg_id != msg2.msg_id
+    def test_is_expired_property(self):
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        # Force old header timestamp to trigger expiration
+        msg.header.timestamp = "2020-01-01T00:00:00Z"
+        self.assertTrue(msg.is_expired)
 
-    def test_all_types_have_correct_layer(self):
-        """Verify each type is assigned to the correct layer."""
-        fleet_types = {MessageType.HEALTH_CHECK, MessageType.HEARTBEAT,
-                       MessageType.AGENT_ONBOARDING, MessageType.AGENT_OFFBOARDING}
-        task_types = {MessageType.TASK_CLAIM, MessageType.TASK_COMPLETE,
-                      MessageType.TASK_BLOCKED, MessageType.COORDINATION_REQUEST,
-                      MessageType.COORDINATION_RESPONSE}
-        code_types = {MessageType.CODE_REVIEW_REQUEST, MessageType.CODE_REVIEW_RESPONSE,
-                      MessageType.MERGE_REQUEST, MessageType.CONFLICT_DETECTED,
-                      MessageType.TEST_RESULTS}
-        knowledge_types = {MessageType.KNOWLEDGE_SHARE, MessageType.SPEC_UPDATE}
-        fence_types = {MessageType.FENCE_POSTED, MessageType.FENCE_RELEASED}
-        bottle_types = {MessageType.BOTTLE_DROPPED, MessageType.BOTTLE_COLLECTED}
 
-        for mt in fleet_types:
-            assert MESSAGE_LAYERS[mt] == MessageLayer.FLEET
-        for mt in task_types:
-            assert MESSAGE_LAYERS[mt] == MessageLayer.TASK
-        for mt in code_types:
-            assert MESSAGE_LAYERS[mt] == MessageLayer.CODE
-        for mt in knowledge_types:
-            assert MESSAGE_LAYERS[mt] == MessageLayer.KNOWLEDGE
-        for mt in fence_types:
-            assert MESSAGE_LAYERS[mt] == MessageLayer.FENCE
-        for mt in bottle_types:
-            assert MESSAGE_LAYERS[mt] == MessageLayer.BOTTLE
+# ========================================================================
+# 11. Helper Functions
+# ========================================================================
+
+class TestHelperFunctions(unittest.TestCase):
+    """Test create_pong and create_error_reply helpers."""
+
+    def test_create_pong(self):
+        ping = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": "2026-04-11T00:00:00Z",
+            "nonce": "nonce-abc",
+        }, source_agent="a-1", target_agent="a-2")
+
+        pong = create_pong(ping)
+        self.assertEqual(pong.type_name, "PING")
+        self.assertEqual(pong.header.target_agent, "a-1")
+        self.assertEqual(pong.header.reply_to, ping.header.message_id)
+        self.assertEqual(pong.payload["nonce"], "nonce-abc")
+
+    def test_create_error_reply(self):
+        msg = Message.create("OPCODE_REQUEST", {
+            "request_id": "req-1",
+            "from_agent": "a-1",
+            "target_agent": "a-2",
+            "opcode": "INVALID",
+        }, source_agent="a-1", target_agent="a-2")
+
+        error = create_error_reply(msg, "UNKNOWN_OPCODE", "high",
+                                    "Opcode not recognized")
+        self.assertEqual(error.type_name, "ERROR_REPORT")
+        self.assertEqual(error.header.reply_to, msg.header.message_id)
+        self.assertEqual(error.payload["error_code"], "UNKNOWN_OPCODE")
+
+    def test_create_error_reply_with_task_id(self):
+        msg = Message.create("TASK_CLAIM", {
+            "task_id": "T-999",
+            "agent_id": "a-1",
+            "task_type": "implementation",
+        }, source_agent="a-1", target_agent="a-2")
+
+        error = create_error_reply(msg, "TASK_FAILED", "critical",
+                                    "Build failed", recoverable=False)
+        self.assertEqual(error.payload["related_task_id"], "T-999")
+        self.assertEqual(error.payload["recoverable"], False)
+
+
+# ========================================================================
+# 12. Message Bus - Handler Registration
+# ========================================================================
+
+class TestMessageBusRegistration(unittest.TestCase):
+    """Test handler registration and management."""
+
+    def setUp(self):
+        self.bus = MessageBus(bus_id="test-bus")
+
+    def test_register_handler(self):
+        handler = lambda m: None
+        self.bus.register_handler("PING", handler, agent_id="a-1")
+        self.assertEqual(self.bus.get_handler_count("PING"), 1)
+
+    def test_register_multiple_handlers(self):
+        self.bus.register_handler("PING", lambda m: None, agent_id="a-1")
+        self.bus.register_handler("PING", lambda m: None, agent_id="a-2")
+        self.assertEqual(self.bus.get_handler_count("PING"), 2)
+
+    def test_duplicate_handler_raises(self):
+        handler = lambda m: None
+        self.bus.register_handler("PING", handler, agent_id="a-1")
+        with self.assertRaises(DuplicateHandlerError):
+            self.bus.register_handler("PING", handler, agent_id="a-1")
+
+    def test_unregister_handler(self):
+        self.bus.register_handler("PING", lambda m: None, agent_id="a-1")
+        self.bus.register_handler("PING", lambda m: None, agent_id="a-2")
+        self.bus.unregister_handler("PING", agent_id="a-1")
+        self.assertEqual(self.bus.get_handler_count("PING"), 1)
+
+    def test_register_unknown_type_raises(self):
+        with self.assertRaises(InvalidMessageTypeError):
+            self.bus.register_handler("BOGUS", lambda m: None)
+
+    def test_get_registered_types(self):
+        self.bus.register_handler("PING", lambda m: None, agent_id="a-1")
+        self.bus.register_handler("HEARTBEAT", lambda m: None, agent_id="a-2")
+        types = self.bus.get_registered_types()
+        self.assertIn("PING", types)
+        self.assertIn("HEARTBEAT", types)
+
+
+# ========================================================================
+# 13. Message Bus - Synchronous Dispatch
+# ========================================================================
+
+class TestMessageBusSyncDispatch(unittest.TestCase):
+    """Test synchronous message dispatch."""
+
+    def setUp(self):
+        self.bus = MessageBus(bus_id="sync-test")
+        self.received = []
+
+    def _make_handler(self, reply_type=None):
+        def handler(msg):
+            self.received.append(msg)
+            if reply_type:
+                return Message.create(reply_type, {
+                    "from_agent": "responder",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }, source_agent="responder")
+            return None
+        return handler
+
+    def test_send_to_handler(self):
+        self.bus.register_handler("PING", self._make_handler(), agent_id="a-1")
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        self.bus.send(ping)
+        self.assertEqual(len(self.received), 1)
+        self.assertEqual(self.received[0].type_name, "PING")
+
+    def test_send_no_handler_raises(self):
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        with self.assertRaises(NoHandlerError):
+            self.bus.send(ping)
+
+    def test_send_and_wait_returns_reply(self):
+        self.bus.register_handler("PING", self._make_handler("PING"), agent_id="a-1")
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        reply = self.bus.send_and_wait(ping)
+        self.assertEqual(reply.type_name, "PING")
+        self.assertEqual(reply.header.source_agent, "responder")
+
+    def test_send_with_filter(self):
+        called = []
+        def handler(msg):
+            called.append(msg)
+
+        self.bus.register_handler("HEARTBEAT", handler, agent_id="a-1",
+                                   filter_fn=lambda m: m.payload.get("status") == "active")
+
+        active = Message.create("HEARTBEAT", {
+            "agent_id": "a-1", "status": "active",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        sleeping = Message.create("HEARTBEAT", {
+            "agent_id": "a-2", "status": "sleeping",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+
+        self.bus.send(active)
+        self.bus.send(sleeping)
+        self.assertEqual(len(called), 1)
+
+    def test_metrics_updated(self):
+        self.bus.register_handler("PING", self._make_handler(), agent_id="a-1")
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        self.bus.send(ping)
+        self.assertGreater(self.bus.metrics.messages_sent, 0)
+        self.assertGreater(self.bus.metrics.messages_received, 0)
+
+    def test_no_reply_send_and_wait_raises(self):
+        self.bus.register_handler("PING", self._make_handler(), agent_id="a-1")
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": "2026-04-11T00:00:00Z",
+        })
+        with self.assertRaises(MessageBusError):
+            self.bus.send_and_wait(ping)
+
+
+# ========================================================================
+# 14. Message Bus - Async Dispatch
+# ========================================================================
+
+class TestMessageBusAsyncDispatch(unittest.IsolatedAsyncioTestCase):
+    """Test asynchronous message dispatch."""
+
+    async def test_async_send(self):
+        bus = MessageBus(bus_id="async-test")
+        received = []
+
+        async def handler(msg):
+            received.append(msg)
+            return None
+
+        bus.register_handler("PING", handler, agent_id="a-1")
+
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+        await bus.send_async(ping)
+        self.assertEqual(len(received), 1)
+
+    async def test_async_send_and_wait(self):
+        bus = MessageBus(bus_id="async-wait-test")
+
+        async def handler(msg):
+            return Message.create("PING", {
+                "from_agent": "responder",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }, source_agent="responder")
+
+        bus.register_handler("PING", handler, agent_id="a-1")
+
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+        reply = await bus.send_and_wait_async(ping, timeout=5.0)
+        self.assertEqual(reply.header.source_agent, "responder")
+
+    async def test_async_send_no_handler_raises(self):
+        bus = MessageBus(bus_id="async-nohandler")
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        with self.assertRaises(NoHandlerError):
+            await bus.send_async(ping)
+
+
+# ========================================================================
+# 15. Message Bus - Pub/Sub
+# ========================================================================
+
+class TestMessageBusPubSub(unittest.TestCase):
+    """Test publish/subscribe patterns."""
+
+    def setUp(self):
+        self.bus = MessageBus(bus_id="pubsub-test")
+
+    def test_subscribe_and_publish(self):
+        self.bus.subscribe("a-1", "SIGNAL_BROADCAST")
+        self.bus.subscribe("a-2", "SIGNAL_BROADCAST")
+
+        msg = Message.create("SIGNAL_BROADCAST", {
+            "agent_id": "broadcaster",
+            "agent_name": "Broadcaster",
+            "role": "lighthouse",
+            "capabilities": ["review", "test"],
+        })
+
+        count = self.bus.publish(msg)
+        self.assertEqual(count, 2)
+
+    def test_get_subscribers(self):
+        self.bus.subscribe("a-1", "PING")
+        self.bus.subscribe("a-2", "PING")
+        subs = self.bus.get_subscribers("PING")
+        self.assertEqual(subs, {"a-1", "a-2"})
+
+    def test_unsubscribe(self):
+        self.bus.subscribe("a-1", "PING")
+        self.bus.unsubscribe("a-1", "PING")
+        subs = self.bus.get_subscribers("PING")
+        self.assertEqual(len(subs), 0)
+
+
+# ========================================================================
+# 16. Message Bus - History
+# ========================================================================
+
+class TestMessageBusHistory(unittest.TestCase):
+    """Test message history tracking."""
+
+    def setUp(self):
+        self.bus = MessageBus(bus_id="history-test")
+        self.bus.register_handler("PING", lambda m: None, agent_id="a-1")
+
+    def test_history_records_messages(self):
+        for i in range(5):
+            msg = Message.create("PING", {
+                "from_agent": f"sender-{i}",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            self.bus.send(msg)
+
+        history = self.bus.get_history()
+        self.assertEqual(len(history), 5)
+
+    def test_history_filtered_by_type(self):
+        self.bus.register_handler("HEARTBEAT", lambda m: None, agent_id="a-1")
+
+        ping = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        hb = Message.create("HEARTBEAT", {
+            "agent_id": "a-1", "status": "active",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+        self.bus.send(ping)
+        self.bus.send(hb)
+
+        ping_history = self.bus.get_history(type_name="PING")
+        self.assertEqual(len(ping_history), 1)
+        self.assertEqual(ping_history[0].type_name, "PING")
+
+    def test_history_limit(self):
+        for i in range(20):
+            msg = Message.create("PING", {
+                "from_agent": f"a-{i}",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            self.bus.send(msg)
+
+        limited = self.bus.get_history(limit=5)
+        self.assertEqual(len(limited), 5)
+
+
+# ========================================================================
+# 17. Message Bus - Priority Ordering
+# ========================================================================
+
+class TestMessageBusPriority(unittest.TestCase):
+    """Test handler priority ordering."""
+
+    def test_higher_priority_handler_called_first(self):
+        bus = MessageBus(bus_id="priority-test")
+        call_order = []
+
+        def low_handler(msg):
+            call_order.append("low")
+
+        def high_handler(msg):
+            call_order.append("high")
+
+        bus.register_handler("PING", low_handler, agent_id="a-1", priority=0)
+        bus.register_handler("PING", high_handler, agent_id="a-2", priority=100)
+
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        bus.send(ping)
+
+        self.assertEqual(call_order, ["high", "low"])
+
+
+# ========================================================================
+# 18. Message Bus - Delivery Guarantees and Metrics
+# ========================================================================
+
+class TestMessageBusGuarantees(unittest.TestCase):
+    """Test delivery guarantee settings and metrics."""
+
+    def test_default_guarantee(self):
+        bus = MessageBus()
+        self.assertEqual(bus.guarantee, DeliveryGuarantee.AT_MOST_ONCE)
+
+    def test_custom_guarantee(self):
+        bus = MessageBus(guarantee=DeliveryGuarantee.EXACTLY_ONCE)
+        self.assertEqual(bus.guarantee, DeliveryGuarantee.EXACTLY_ONCE)
+
+    def test_metrics_reset(self):
+        bus = MessageBus(bus_id="metrics-test")
+        bus.register_handler("PING", lambda m: None, agent_id="a-1")
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        bus.send(msg)
+        self.assertGreater(bus.metrics.messages_sent, 0)
+        bus.reset_metrics()
+        self.assertEqual(bus.metrics.messages_sent, 0)
+
+    def test_dropped_message_counted(self):
+        bus = MessageBus(bus_id="drop-test")
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        try:
+            bus.send(msg)
+        except NoHandlerError:
+            pass
+        self.assertEqual(bus.metrics.messages_dropped, 1)
+
+
+# ========================================================================
+# 19. Bus Repr
+# ========================================================================
+
+class TestBusRepr(unittest.TestCase):
+    def test_repr(self):
+        bus = MessageBus(bus_id="repr-test")
+        bus.register_handler("PING", lambda m: None, agent_id="a-1")
+        r = repr(bus)
+        self.assertIn("repr-test", r)
+        self.assertIn("handlers=1", r)
+
+
+# ========================================================================
+# 20. Version Mismatch
+# ========================================================================
+
+class TestVersionMismatch(unittest.TestCase):
+    def test_version_mismatch_raises(self):
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        msg.header.protocol_version = "1.0.0"
+        with self.assertRaises(VersionMismatchError):
+            msg.validate()
+
+    def test_correct_version_validates(self):
+        msg = Message.create("PING", {
+            "from_agent": "a-1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        errors = msg.validate()
+        self.assertEqual(len(errors), 0)
+
+
+# ========================================================================
+# 21. End-to-End Protocol Flow
+# ========================================================================
+
+class TestEndToEndProtocolFlow(unittest.TestCase):
+    """Test realistic multi-step protocol flows."""
+
+    def test_handshake_flow(self):
+        """Simulate a complete handshake: SIGNAL_BROADCAST -> DISCOVERY."""
+        bus = MessageBus(bus_id="e2e-handshake")
+
+        discovered_agents = []
+
+        def discovery_handler(msg):
+            if msg.header.message_type == "FLEET_DISCOVERY":
+                return Message.create("SIGNAL_BROADCAST", {
+                    "agent_id": "oracle1",
+                    "agent_name": "Oracle1",
+                    "role": "lighthouse",
+                    "capabilities": ["vocab", "disputes"],
+                }, source_agent="oracle1")
+            return None
+
+        bus.register_handler("FLEET_DISCOVERY", discovery_handler, agent_id="oracle1")
+
+        discovery = Message.create("FLEET_DISCOVERY", {
+            "agent_id": "new-agent",
+            "query_type": "seek",
+        }, source_agent="new-agent")
+
+        replies = bus.send(discovery)
+        self.assertEqual(len(replies), 1)
+        self.assertEqual(replies[0].type_name, "SIGNAL_BROADCAST")
+        self.assertEqual(replies[0].payload["role"], "lighthouse")
+
+    def test_coordination_flow(self):
+        """Simulate propose -> accept flow."""
+        bus = MessageBus(bus_id="e2e-coord")
+
+        def coordinate_handler(msg):
+            if msg.header.message_type == "COORDINATE_PROPOSE":
+                return Message.create("COORDINATE_ACCEPT", {
+                    "from_agent": "a-2",
+                    "proposal_id": msg.payload.get("task_id", ""),
+                }, source_agent="a-2")
+            return None
+
+        bus.register_handler("COORDINATE_PROPOSE", coordinate_handler, agent_id="a-2")
+
+        proposal = Message.create("COORDINATE_PROPOSE", {
+            "from_agent": "a-1",
+            "to_agent": "a-2",
+            "coordination_type": "joint_review",
+            "proposal": "Review the v2 protocol PR",
+            "task_id": "task-review-1",
+        }, source_agent="a-1")
+
+        reply = bus.send_and_wait(proposal)
+        self.assertEqual(reply.type_name, "COORDINATE_ACCEPT")
+
+    def test_ping_pong_flow(self):
+        """Simulate PING/PONG flow."""
+        bus = MessageBus(bus_id="e2e-pingpong")
+
+        def ping_handler(msg):
+            return create_pong(msg)
+
+        bus.register_handler("PING", ping_handler, agent_id="responder")
+
+        ping = Message.create("PING", {
+            "from_agent": "sender",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "nonce": "test-nonce",
+        }, source_agent="sender", target_agent="responder")
+
+        pong = bus.send_and_wait(ping)
+        self.assertEqual(pong.payload["nonce"], "test-nonce")
+        self.assertEqual(pong.header.target_agent, "sender")
+
+    def test_error_handling_flow(self):
+        """Simulate request -> error flow."""
+        bus = MessageBus(bus_id="e2e-error")
+
+        def opcode_handler(msg):
+            return create_error_reply(
+                msg,
+                error_code="UNKNOWN_OPCODE",
+                severity="medium",
+                description=f"Opcode {msg.payload.get('opcode')} not supported",
+            )
+
+        bus.register_handler("OPCODE_REQUEST", opcode_handler, agent_id="target")
+
+        request = Message.create("OPCODE_REQUEST", {
+            "request_id": "req-1",
+            "from_agent": "source",
+            "target_agent": "target",
+            "opcode": "NONEXISTENT",
+        }, source_agent="source", target_agent="target")
+
+        error = bus.send_and_wait(request)
+        self.assertEqual(error.type_name, "ERROR_REPORT")
+        self.assertIn("NONEXISTENT", error.payload["description"])
+
+    def test_full_task_lifecycle(self):
+        """Simulate full task lifecycle: claim -> complete -> trust update."""
+        bus = MessageBus(bus_id="e2e-task")
+
+        def task_handler(msg):
+            if msg.header.message_type == "TASK_CLAIM":
+                return Message.create("TASK_COMPLETE", {
+                    "task_id": msg.payload["task_id"],
+                    "agent_id": "worker-1",
+                    "result": "success",
+                    "summary": "Task completed successfully",
+                }, source_agent="worker-1")
+            return None
+
+        bus.register_handler("TASK_CLAIM", task_handler, agent_id="worker-1")
+
+        claim = Message.create("TASK_CLAIM", {
+            "task_id": "T-016",
+            "agent_id": "worker-1",
+            "task_type": "implementation",
+            "priority": "high",
+            "summary": "Implement I2I v2",
+        }, source_agent="worker-1")
+
+        complete = bus.send_and_wait(claim)
+        self.assertEqual(complete.type_name, "TASK_COMPLETE")
+        self.assertEqual(complete.payload["result"], "success")
+
+        # Trust update for good work
+        trust = Message.create("TRUST_UPDATE", {
+            "from_agent": "fleet",
+            "to_agent": "worker-1",
+            "trust_delta": 0.2,
+            "reason": "Completed T-016 successfully",
+            "interaction_type": "task_completion",
+        }, source_agent="fleet")
+        self.assertTrue(trust.is_valid())
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
