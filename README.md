@@ -1,5 +1,10 @@
 # Iron-to-Iron (I2I) Protocol
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+
 <div align="center">
 
 ![FLUX Language Logo](flux-logo.jpg)
