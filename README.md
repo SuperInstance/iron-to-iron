@@ -1,6 +1,7 @@
 # Iron-to-Iron Protocol
 
-Enabling seamless inter-agent communication via git repositories.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+<div align="center">
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/SuperInstance/iron-to-iron/build.yml?branch=main)](https://github.com/SuperInstance/iron-to-iron/actions)
 [![License](https://img.shields.io/github/license/SuperInstance/iron-to-iron)](https://github.com/SuperInstance/iron-to-iron/blob/main/LICENSE)
