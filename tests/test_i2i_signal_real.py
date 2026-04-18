@@ -170,7 +170,8 @@ class TestCompareAgents:
         d.mkdir()
         vd = d / "vocabularies"
         vd.mkdir()
-        (vd / "v.ese").write_text("\n".join(f"{c}: def" for c in concepts))
+        for c in concepts:
+            (vd / f"{c}.ese").write_text(f"{c}: def")
         return d
 
     def test_identical(self, tmp_path):

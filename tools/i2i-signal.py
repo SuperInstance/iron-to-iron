@@ -31,7 +31,7 @@ def parse_ese_file(ese_path: Path) -> Dict[str, Any]:
 
     return {
         'file': ese_path.name,
-        'path': str(ese_path),
+        'path': ese_path,
         'entries': entries,
         'count': len(entries)
     }

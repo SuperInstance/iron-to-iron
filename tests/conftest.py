@@ -11,6 +11,7 @@ _HYPHEN_MODULES = {
     "i2i_signal": TOOLS_DIR / "i2i-signal.py",
     "i2i_review": TOOLS_DIR / "i2i-review.py",
     "i2i_resolve": TOOLS_DIR / "i2i-resolve.py",
+    "i2i_messages": TOOLS_DIR / "i2i_messages.py",
 }
 
 for module_name, filepath in _HYPHEN_MODULES.items():
