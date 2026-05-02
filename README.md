@@ -328,3 +328,14 @@ iron-to-iron/
 ---
 
 <img src="callsign1.jpg" width="128" alt="callsign">
+
+## Fleet Context
+
+Part of the Cocapn fleet. Related repos:
+- **[plato-sdk](https://github.com/SuperInstance/plato-sdk)** — PLATO tile integration for agents
+- **[bottle-protocol](https://github.com/SuperInstance/bottle-protocol)** — Fleet communication via bottle directories
+- **[plato-server](https://github.com/SuperInstance/plato-server)** — PLATO room server (port 8847)
+- **[git-agent](https://github.com/SuperInstance/git-agent)** — Git-based agent coordination
+
+---
+🦐 Cocapn fleet — lighthouse keeper architecture
