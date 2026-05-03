@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "iron-to-iron"
+version = "1.0.0"
+description = "Cocapn Fleet module — iron-to-iron"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["cocapn", "fleet"]
+
+[project.scripts]
+iron_to_iron = "iron_to_iron:main"
+

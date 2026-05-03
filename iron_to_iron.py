@@ -166,5 +166,9 @@ def demo():
         os.chdir("/")
         shutil.rmtree(tmpdir, ignore_errors=True)
 
-if __name__ == "__main__":
+def main():
     demo()
+
+
+if __name__ == "__main__":
+    main()
